@@ -1,7 +1,7 @@
 #include "ThreadedDatabaseHandler.hpp"
 #include <iostream>
 
-ThreadedDatabaseHandler::ThreadedDatabaseHandler(int idx) : idx_(idx)
+ThreadedDatabaseHandler::ThreadedDatabaseHandler(uint32_t idx) : idx_(idx)
 {
     DbThread = std::thread(&ThreadedDatabaseHandler::run,this);
 }

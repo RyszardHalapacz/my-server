@@ -14,7 +14,7 @@
 class ThreadedDatabaseHandler : public IDatabaseHandler
 {
     public:
-    ThreadedDatabaseHandler (int idx);   
+    ThreadedDatabaseHandler (uint32_t idx);   
     ~ThreadedDatabaseHandler () override; 
 
     ThreadedDatabaseHandler (std::string&, uint32_t ){};
@@ -26,7 +26,7 @@ class ThreadedDatabaseHandler : public IDatabaseHandler
     std::vector<Event> vecEvent{};
     std::mutex mut;  
     private:
-    int idx_;
+    uint32_t idx_;
     std::thread DbThread;
     bool isActive  {true};
 

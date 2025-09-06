@@ -1,17 +1,20 @@
 #include "server.hpp"
+#include "event.hpp"
 
 int main()
 {
-    //ServerThreaded  serv;
-    ServerConditionVar serv;
+    ServerThreaded  serv;
+    //ServerConditionVar serv;
     //ServerAsync serv;
     //ServerSingleThread serv;
     // serv.run();
     int request = 0;
-    while(true &&  request <20000)
+    Event event;
+    while( request <20000)
     {
           std::this_thread::sleep_for(std::chrono::milliseconds(rand () % 10));
-          request = serv.addEvent(request);
+          serv.addEvent(event);
+          request++;
           
     }
     return 0;

@@ -1,6 +1,8 @@
 #pragma once
 #include "comon.h"
-class Event
+
+struct Event
 {
 
 };
+

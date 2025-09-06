@@ -36,7 +36,7 @@ set (MY_SOURCES
 src/server/server.cpp
 src/handler/ThreadedDatabaseHandler.cpp
 src/handler/ConditionVariableDatabaseHandler.cpp
-src/httpserver.cpp
+#src/httpserver.cpp
 )
 
 set(TEST_SOURCES 

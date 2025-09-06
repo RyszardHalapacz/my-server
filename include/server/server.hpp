@@ -1,143 +1,147 @@
 #pragma once
-#include <vector>
-#include <thread>
+
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <cstdint>
 #include <future>
+#include <iostream>
+#include <memory>
+#include <mutex>
+#include <thread>
 #include <vector>
-
-
 
 #include "comon.h"
-//#include "Idatabasehandler.hpp"
 #include "ThreadedDatabaseHandler.hpp"
 #include "ConditionVariableDatabaseHandler.hpp"
 
-
-
-
-template<typename HandlerType>
-class ServerBase
-{
+// ========= Base (generic) =========
+template <typename HandlerType>
+class ServerBase {
 public:
-    ServerBase()  = default;
-    virtual ~ServerBase()
+    ServerBase() noexcept = default;
+    virtual ~ServerBase() noexcept
     {
-        for (auto& h : vecHandler)
-            h->terminateThreads();
-        vecHandler.clear();
+        for (auto& h : vecHandler) {
+            if (h) h->terminateThreads();  //check if h is not nulltpr
+        }
     }
-     uint32_t getMaxThread () {return maxThreads_;};
 
+    ServerBase(const ServerBase&) = delete;
+    ServerBase& operator=(const ServerBase&) = delete;
+    ServerBase(ServerBase&&) = delete;
+    ServerBase& operator=(ServerBase&&) = delete;
 
-     virtual
-      //global::DatabaseConntetion::status
-       int addEvent(int event) = 0;
-      
+    [[nodiscard]] uint32_t getMaxThread() const noexcept { return maxThreads_; }
+
+    virtual int addEvent(Event event) = 0;
 
 protected:
-    uint32_t maxThreads_ = std::thread::hardware_concurrency();
-    uint32_t requestNumber_ {0};
+    static uint32_t hwThreadsOrOne() noexcept
+    {
+        auto n = std::thread::hardware_concurrency();
+        return n ? n : 1;
+    }
+
+    uint32_t maxThreads_ = hwThreadsOrOne();
+    std::atomic<uint32_t> requestCounter_{1};         
     std::vector<std::unique_ptr<HandlerType>> vecHandler;
-    std::mutex mutex_;
+    mutable std::mutex mutex_;                     
 };
 
-/// @brief ///////////////////////////
-template<>
-class ServerBase<void>
-{
+// ========= Base<void> specialization =========
+template <>
+class ServerBase<void> {
 public:
-    ServerBase() = default;
-    virtual ~ServerBase() = default;
-    virtual int addEvent(int event) = 0;
+    ServerBase() noexcept = default;
+    virtual ~ServerBase() noexcept = default;
+
+    ServerBase(const ServerBase&) = delete;
+    ServerBase& operator=(const ServerBase&) = delete;
+    ServerBase(ServerBase&&) = delete;
+    ServerBase& operator=(ServerBase&&) = delete;
+
+    /
+    virtual int addEvent(Event event) = 0;
+
 protected:
-    uint32_t requestNumber_ {0};
+    std::atomic<uint32_t> requestCounter_{0};
 };
 
-
-/// @brief //////////////////////////////
-class ServerConditionVar : public ServerBase<ConditionVariableDatabaseHandler>
-{
+// ========= ServerConditionVar =========
+class ServerConditionVar : public ServerBase<ConditionVariableDatabaseHandler> {
 public:
-    
-    ServerConditionVar()
-    { 
-        for (uint32_t i = 0; i < maxThreads_; ++i)
-        {
-            vecHandler.emplace_back (std::make_unique<ConditionVariableDatabaseHandler>(vecEvent, mutex_, condVar));
+    ServerConditionVar() {
+        for (uint32_t i = 0; i < this->maxThreads_; ++i) {
+            this->vecHandler.emplace_back(
+                std::make_unique<ConditionVariableDatabaseHandler>(queue_, this->mutex_, cv_));
         }
     }
 
-    // global::DatabaseConntetion::status 
-    int addEvent(int event) override
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        vecEvent.emplace_back(/*...event...*/);
-        condVar.notify_one();
-        return ++event;
-       // return global::DatabaseConntetion::status::succes;
-    }
-
-    std::vector<Event> vecEvent;
-    std::condition_variable condVar;
-};
-
-
-class ServerThreaded : public ServerBase<ThreadedDatabaseHandler>
-{
-public:
-ServerThreaded()
-     {
-        for (uint32_t i = 0; i < maxThreads_; ++i)
-            vecHandler.emplace_back(std::make_unique<ThreadedDatabaseHandler>(i));
-    }
-
-    // global::DatabaseConntetion::status
-    int addEvent(int event) override
-    {
+    int addEvent(Event event) override {
         {
-
-            std::lock_guard<std::mutex> lock(mutex_);
-            requestNumber_++;
+            std::lock_guard<std::mutex> lock(this->mutex_);
+            queue_.emplace_back(/* TODO */);
         }
-        uint32_t idx = requestNumber_ % maxThreads_;
-         vecHandler[idx]->addEvent();
-         return ++event;
-    }
-};
-
-
-class ServerAsync : public ServerBase<void> 
-{
-public:
-    ServerAsync() = default;
-
-    int addEvent(int event) override
-    {
-      
-        auto fut = std::async(std::launch::async, [event]() {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10)); 
-            std::cout << "Handled event " << event << " in thread: " << std::this_thread::get_id() << "\n";
-            return event + 1;
-        });
-       
-    futures_.push_back(std::move(fut));
-
-        return event + 1; 
+        cv_.notify_one();
+        return  1; 
     }
 
 private:
-    
-    std::vector<std::future<int>> futures_;
+    std::vector<Event>       queue_;
+    std::condition_variable  cv_;
 };
 
-class ServerSingleThread : public ServerBase<void>
-{
+// ========= ServerThreaded =========
+class ServerThreaded : public ServerBase<ThreadedDatabaseHandler> {
 public:
-    int addEvent(int event) override
-    {
-       
-        std::cout << "Handled event " << event
+    ServerThreaded() {
+        for (uint32_t i = 0; i < this->maxThreads_; ++i) 
+        {
+            this->vecHandler.emplace_back(std::make_unique<ThreadedDatabaseHandler>(i));
+        }
+    }
+
+    int addEvent(Event event) override {
+        const uint32_t ticket = this->requestCounter_.fetch_add(1, std::memory_order_relaxed);
+        const uint32_t idx    = ticket % this->maxThreads_;
+        this->vecHandler[idx]->addEvent(); 
+        return  1; // TODO: status
+    }
+};
+
+// ========= ServerAsync =========
+class ServerAsync : public ServerBase<void> {
+public:
+    ServerAsync() = default;
+
+  int addEvent(Event event) override {
+    const uint32_t ticket = requestCounter_.fetch_add(1, std::memory_order_relaxed);
+
+    futures_.emplace_back(std::async(std::launch::async,
+        [ev = std::move(event), ticket]() mutable {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            std::cout << "Handled event " << ticket
+                      << " in thread: " << std::this_thread::get_id() << "\n";
+            return  ev;
+        }));
+
+    return /*np. status*/ 0;
+}
+
+    ~ServerAsync() noexcept override = default; 
+
+private:
+    std::vector<std::future<Event>> futures_;
+};
+
+// ========= ServerSingleThread =========
+class ServerSingleThread : public ServerBase<void> {
+public:
+    int addEvent(Event event) override {
+        std::cout << "Handled event " << ++requestCounter_
                   << " in main thread: " << std::this_thread::get_id() << "\n";
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); 
-        return event + 1;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        return  1; // TODO: status
     }
 };
