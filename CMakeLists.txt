@@ -12,6 +12,9 @@ if (DEBUG_MODE)
 endif()
 
 include_directories("${CMAKE_SOURCE_DIR}/include")
+include_directories("${CMAKE_SOURCE_DIR}/include/server")
+include_directories("${CMAKE_SOURCE_DIR}/include/handler")
+
 include_directories("${CMAKE_SOURCE_DIR}/lib")
 #GTEST
 
@@ -30,9 +33,9 @@ enable_testing()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
 set (MY_SOURCES
-src/server.cpp
-src/ThreadedDatabaseHandler.cpp
-src/ConditionVariableDatabaseHandler.cpp
+src/server/server.cpp
+src/handler/ThreadedDatabaseHandler.cpp
+src/handler/ConditionVariableDatabaseHandler.cpp
 src/httpserver.cpp
 )
 
