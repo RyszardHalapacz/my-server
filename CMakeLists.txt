@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 project(MyApp)
 
 #set(CMAKE_CXX_COMPILER "clang++")
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_BUILD_TYPE "Release")
 
@@ -36,12 +36,15 @@ set (MY_SOURCES
 src/server/server.cpp
 src/handler/ThreadedDatabaseHandler.cpp
 src/handler/ConditionVariableDatabaseHandler.cpp
+src/logger/log_names.cpp
 #src/httpserver.cpp
 )
 
 set(TEST_SOURCES 
 ${MY_SOURCES}  
-test/test.cpp)
+test/test.cpp
+test/logger/log_names_test.cpp
+)
 
 add_executable(
   main_test

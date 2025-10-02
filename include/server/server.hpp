@@ -61,7 +61,7 @@ public:
     ServerBase(ServerBase&&) = delete;
     ServerBase& operator=(ServerBase&&) = delete;
 
-    /
+    
     virtual int addEvent(Event event) = 0;
 
 protected:
