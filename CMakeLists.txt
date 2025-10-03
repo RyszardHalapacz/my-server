@@ -12,6 +12,7 @@ if (DEBUG_MODE)
 endif()
 
 include_directories("${CMAKE_SOURCE_DIR}/include")
+include_directories("${CMAKE_SOURCE_DIR}/include/messages")
 include_directories("${CMAKE_SOURCE_DIR}/include/server")
 include_directories("${CMAKE_SOURCE_DIR}/include/handler")
 
@@ -44,6 +45,8 @@ set(TEST_SOURCES
 ${MY_SOURCES}  
 test/test.cpp
 test/logger/log_names_test.cpp
+test/logger/payloads/payload_base_test.cpp
+test/logger/payloads/request_payload_test.cpp
 )
 
 add_executable(
