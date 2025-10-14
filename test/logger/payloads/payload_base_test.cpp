@@ -30,15 +30,20 @@ TEST(PayloadBase, SizePolicy) {
 #endif
 }
 
-TEST(PayloadBase, DefaultsAreZeroed) {
-  Base b{};
-  EXPECT_EQ(static_cast<unsigned>(b.severity), 0u);
-  EXPECT_EQ(b.timestamp,   0u);
-  EXPECT_EQ(b.thread_id,   0u);
-  EXPECT_EQ(b.request_id,  0u);
-  EXPECT_EQ(b.class_id,    0u);
-  EXPECT_EQ(b.method_id,   0u);
-  EXPECT_EQ(b.schema_version, 1u);
+TEST(PayloadBase, DefaultsMatchDefinition) {
+  Base b{};                       
+
+  // Sonda z TYM SAMYM układem i inicjalizatorami co w .def
+  struct DefaultsProbe {
+  #define X(C,F) C F;
+  #include "common/messages/payloads/log_payloads.def"
+  #undef X
+  } def{};
+
+  // Porównujemy każde pole z sondą – działa też dla nie-zerowych domyślnych
+  #define X(C,F) EXPECT_EQ(b.F, def.F);
+  #include "common/messages/payloads/log_payloads.def"
+  #undef X
 }
 
 TEST(PayloadBase, TagIsStatic) {

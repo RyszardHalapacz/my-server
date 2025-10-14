@@ -1,0 +1,7 @@
+  X(Severity     ,  severity)        // info/warn/error
+  X(std::uint64_t,  timestamp)       // monotonic time ticks
+  X(std::uint32_t,  thread_id)       // mapped thread id
+  X(std::uint32_t,  request_id)      // correlation id
+  X(std::uint16_t,  class_id)        // X-macro class id
+  X(std::uint16_t,  method_id)       // X-macro method id
+  X(std::uint16_t,  schema_version) // ABI/schema version
