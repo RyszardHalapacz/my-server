@@ -10,11 +10,12 @@ TEST(RequestPayload, IsTriviallyCopyable) {
 
 TEST(RequestPayload, InheritsHeaderAndAlignment) {
   EXPECT_EQ(alignof(RequestPayload), 64u);
-#if MSG_PAD_TO_64B
-  // Header occupies 64B, Request fields are located beyond it
 
+#if MSG_PAD_TO_64B
+  // With padding policy enabled, full record should be at least one cache line.
   EXPECT_GE(sizeof(RequestPayload), 64u);
 #endif
+
   RequestPayload r{};
   EXPECT_EQ(r.tag(), MsgTag::Request);
 }

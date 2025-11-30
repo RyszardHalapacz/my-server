@@ -25,7 +25,7 @@ TEST(LogIds, MethodCountMatchesDef) {
 }
 
 TEST(LogIds, NamesAndMappingSpecific) {
-    // Z Twojej .def:
+    // Froms .def:
     // X(Server,  AddEvent)
     // X(Handler, Run)
     // X(Handler, terminateThreads)

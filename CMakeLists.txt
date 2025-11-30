@@ -47,6 +47,8 @@ test/test.cpp
 test/logger/log_names_test.cpp
 test/logger/payloads/payload_base_test.cpp
 test/logger/payloads/request_payload_test.cpp
+test/logger/payloads/payload_register_test.cpp
+test/logger/payloads/builder_test.cpp
 )
 
 add_executable(
