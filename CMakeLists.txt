@@ -16,6 +16,8 @@ include_directories("${CMAKE_SOURCE_DIR}/include/messages")
 include_directories("${CMAKE_SOURCE_DIR}/include/server")
 include_directories("${CMAKE_SOURCE_DIR}/include/handler")
 
+include_directories("${CMAKE_SOURCE_DIR}/include/logger/registry")
+
 include_directories("${CMAKE_SOURCE_DIR}/lib")
 #GTEST
 
@@ -49,6 +51,8 @@ test/logger/payloads/payload_base_test.cpp
 test/logger/payloads/request_payload_test.cpp
 test/logger/payloads/payload_register_test.cpp
 test/logger/payloads/builder_test.cpp
+test/logger/header_args_test.cpp
+test/logger/logger_header_smoke_test.cpp
 )
 
 add_executable(

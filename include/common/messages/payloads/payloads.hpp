@@ -6,6 +6,18 @@
 
 #include "common/messages/log_message.hpp"
 
+template<std::size_t N>
+struct Padding
+{
+    std::byte padding[N];
+};
+
+// Specjalizacja dla N == 0: pusty typ (żeby nie było tablicy [0])
+template<>
+struct Padding<0>
+{
+};
+
 enum class Severity : std::uint8_t { Info, Warn, Error };
 
 // Set to 1 to enable padding for Generic header up to 64B.
@@ -28,7 +40,7 @@ struct PayloadBase {
   // Probe struct with THE SAME layout as the header fields – used only to compute sizeof.
   struct _FieldsSizeProbe {
     #define X(C,F) C F;
-    #include "common/messages/payloads/log_requestpayload.def"
+    #include "common/messages/payloads/log_payloads.def"
     #undef X
   };
 
@@ -45,8 +57,12 @@ struct PayloadBase {
     }
   }();
 
-  // Zero-size std::array is valid, so for _pad_bytes == 0 this does not add any space.
-  std::array<char, _pad_bytes> _padding{};
+  // Padding:
+  // - Padding<0> is an empty type; with [[no_unique_address]] it adds no size.
+  // - Padding<N> (N > 0) contributes exactly N bytes.
+  // Zero-cost for N == 0, exact-size filler otherwise.
+  [[no_unique_address]] Padding<_pad_bytes> _padding{};
+
 
   // Extra sanity check only for Generic (optional but useful).
   static_assert(Tag != MsgTag::Generic || _fields_size <= 64u,

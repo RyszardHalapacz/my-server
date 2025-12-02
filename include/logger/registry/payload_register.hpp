@@ -4,7 +4,7 @@
 #include <utility>
 #include <string_view>
 
-#include "common/messages/payloads/payloads.hpp"  // MsgTag, PayloadBase, Severity itd.
+#include "common/messages/payloads/payloads.hpp"  // MsgTag, PayloadBase, Severity, etc.
 
 namespace logger::registry {
 
@@ -26,7 +26,7 @@ struct PayloadRegister<MsgTag::Generic> {
     using payload_type = GenericPayload;
     using base_type    = PayloadBase<MsgTag::Generic, GenericPayload>;
 
-    // Typ argumentów: same typy z log_payloads.def
+    // Argument types – exactly the types from log_payloads.def (header only).
     using args_tuple_type = decltype(
         std::tuple{
         #define X(C,F) std::declval<C>(),
@@ -35,14 +35,13 @@ struct PayloadRegister<MsgTag::Generic> {
         }
     );
 
-    // Wskaźniki do pól nagłówka – UWAGA: na bazę, nie na GenericPayload
+    // Pointers to header fields – note: they point to the base, not GenericPayload.
     static constexpr auto field_ptrs = std::tuple{
         #define X(C,F) &base_type::F,
         #include "common/messages/payloads/log_payloads.def"
         #undef X
     };
 };
-
 
 
 // ---------- Request ----------
@@ -62,7 +61,7 @@ struct PayloadRegister<MsgTag::Request> {
     using payload_type = RequestPayload;
     using base_type    = PayloadBase<MsgTag::Request, RequestPayload>;
 
-    // Header (.def) + request (.def) – typy argumentów
+    // Argument types: header (.def) + request body (.def).
     using args_tuple_type = decltype(
         std::tuple{
         #define X(C,F) std::declval<C>(),
@@ -74,21 +73,20 @@ struct PayloadRegister<MsgTag::Request> {
         }
     );
 
-    // Wskaźniki:
-    //  - najpierw na pola z bazy (header),
-    //  - potem na pola z RequestPayload (body).
+    // Field pointers:
+    //  - first header fields from the base,
+    //  - then request-specific fields from RequestPayload.
     static constexpr auto field_ptrs = std::tuple{
         // header from PayloadBase
         #define X(C,F) &base_type::F,
         #include "common/messages/payloads/log_payloads.def"
         #undef X
 
-        // request-specific fields from RequestPayload
+        // request-specific fields
         #define X(C,F) &payload_type::F,
         #include "common/messages/payloads/log_requestpayload.def"
         #undef X
     };
 };
-
 
 } // namespace logger::registry
