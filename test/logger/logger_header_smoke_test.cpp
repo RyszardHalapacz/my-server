@@ -12,7 +12,7 @@ TEST(LoggerHeaderSmokeTest, AcceptsValidHeaderPacket)
 
     // Prepare a valid header packet in the same order as in log_payloads.def
     const Severity      severity       = Severity::Info;   // adjust if enum name differs
-    const std::uint64_t timestamp      = 123456u;
+    const std::uint64_t  timestamp      = 123456u;
     const std::uint32_t thread_id      = 7u;
     const std::uint32_t request_id     = 999u;
     const std::uint16_t class_id       = 1u;

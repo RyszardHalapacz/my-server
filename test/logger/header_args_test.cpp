@@ -14,7 +14,7 @@ TEST(PackHeaderArgs, ReturnsTupleOfDecayedTypes)
 {
     auto t = pack_header_args(1, 2.5, "abc");
 
-    // typ: std::tuple<int, double, const char*>
+    
     static_assert(std::is_same_v<
         decltype(t),
         std::tuple<int, double, const char*>
@@ -28,7 +28,7 @@ TEST(PackHeaderArgs, DecaysReferencesAndConst)
 
     auto t = pack_header_args(x, y);
 
-    // referencje i consty zdjęte -> std::tuple<int, int>
+
     static_assert(std::is_same_v<
         decltype(t),
         std::tuple<int, int>

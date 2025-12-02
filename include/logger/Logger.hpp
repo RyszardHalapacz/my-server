@@ -21,7 +21,8 @@ struct Handler {
     }
 
 private:
-    //static LogCore& core(); // dostęp do wspólnej kolejki / rdzenia
+   // static LogCore& core(); // access to the shared logging core and its queue
+
 };
 
 } // namespace logger

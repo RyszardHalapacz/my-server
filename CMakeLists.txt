@@ -53,6 +53,7 @@ test/logger/payloads/payload_register_test.cpp
 test/logger/payloads/builder_test.cpp
 test/logger/header_args_test.cpp
 test/logger/logger_header_smoke_test.cpp
+test/logger/logger_header_negative_test.cpp
 )
 
 add_executable(
