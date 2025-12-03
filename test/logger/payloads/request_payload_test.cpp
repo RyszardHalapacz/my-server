@@ -24,7 +24,14 @@ TEST(RequestPayload, DebugPrintIsCallable) {
   // Compile-time/call check only (CRTP)
 
   RequestPayload r{};
-  r.debug_print();  // No asserts – must compile and invoke Derived::debug_impl()
+  // No asserts – must compile and invoke Derived::debug_impl()
+ std::ostringstream oss;
+r.debug_print(oss);
+
+   std::string out = oss.str();
+    std::string expected = "[tag=1] severity=Info timestamp=0 thread_id=0 request_id=0 class_id=0 method_id=0 schema_version=0 req_unique_id=0 path= ";   // pusty, żeby zawsze FAIL i pokazało diff
+
+    EXPECT_EQ(out, expected);
 
   SUCCEED();
 }

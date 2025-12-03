@@ -10,7 +10,11 @@ struct alignas(64) RequestPayload  : PayloadBase<MsgTag::Request, RequestPayload
   #undef X
 
 
-  void debug_impl() const {
-    // log/printf fields; leave empty if not needed.
-  }
+  void debug_impl(std::ostream& os) const {
+    print_header(os);
+    #define X(C,F) os << #F << '=' << F << ' ';
+    #include "common/messages/payloads/log_requestpayload.def"
+    #undef X
+}
+
 };
