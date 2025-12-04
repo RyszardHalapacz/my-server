@@ -20,18 +20,26 @@ TEST(RequestPayload, InheritsHeaderAndAlignment) {
   EXPECT_EQ(r.tag(), MsgTag::Request);
 }
 
-TEST(RequestPayload, DebugPrintIsCallable) {
-  // Compile-time/call check only (CRTP)
-
+TEST(RequestPayload, DebugPrintWithData) {
   RequestPayload r{};
-  // No asserts – must compile and invoke Derived::debug_impl()
- std::ostringstream oss;
-r.debug_print(oss);
+  r.severity = Severity::Error;
+  r.timestamp = 1234567890;
+  r.thread_id = 42;
+  r.request_id = 999;
+  r.class_id = 1;
+  r.method_id = 2;
+  r.schema_version = 1;
+  r.req_unique_id = 555;
+  r.path = "/api/v1/users";
 
-   std::string out = oss.str();
-    std::string expected = "[tag=1] severity=Info timestamp=0 thread_id=0 request_id=0 class_id=0 method_id=0 schema_version=0 req_unique_id=0 path= ";   // pusty, żeby zawsze FAIL i pokazało diff
+  std::ostringstream oss;
+  r.debug_print(oss);
 
-    EXPECT_EQ(out, expected);
+  std::string out = oss.str();
+  std::string expected = 
+      "[tag=1] severity=Error timestamp=1234567890 thread_id=42 "
+      "request_id=999 class_id=1 method_id=2 schema_version=1 "
+      "req_unique_id=555 path=/api/v1/users ";
 
-  SUCCEED();
+  EXPECT_EQ(out, expected);
 }
