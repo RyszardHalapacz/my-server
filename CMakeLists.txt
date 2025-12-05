@@ -15,6 +15,7 @@ include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}/include/messages")
 include_directories("${CMAKE_SOURCE_DIR}/include/server")
 include_directories("${CMAKE_SOURCE_DIR}/include/handler")
+include_directories("${CMAKE_SOURCE_DIR}/include/publisher")
 
 include_directories("${CMAKE_SOURCE_DIR}/include/logger/registry")
 
@@ -55,6 +56,9 @@ test/logger/header_args_test.cpp
 test/logger/logger_header_smoke_test.cpp
 test/logger/logger_header_negative_test.cpp
 test/logger/core/StreamAdapter_test.cpp
+test/publisher/sink/JsonSink_test.cpp
+test/publisher/policy/Policy_test.cpp
+
 )
 
 add_executable(
