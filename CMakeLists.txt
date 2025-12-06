@@ -58,6 +58,7 @@ test/logger/logger_header_negative_test.cpp
 test/logger/core/StreamAdapter_test.cpp
 test/publisher/sink/JsonSink_test.cpp
 test/publisher/policy/Policy_test.cpp
+test/publisher/Publisher_test.cpp
 
 )
 

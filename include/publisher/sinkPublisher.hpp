@@ -1,19 +1,23 @@
-#include <string>
-#include <string_view>
-#include <fstream>
-#include <cstdio>
-#include <utility>
-
 ///////////////////////////////////////
 // SinkBase + concrete sinks
 ///////////////////////////////////////
+#pragma once
+#include <string>
+#include <string_view>
 
 template<typename Derived>
 struct SinkBase {
     using view_type = std::string_view;
 
-    std::string format(view_type line) const {
-        return static_cast<const Derived*>(this)->format_impl(line);
+    // Stateless formatting entry point.
+    //
+    // Contract for Derived:
+    //   static std::string format_impl(view_type line);
+    //
+    // This keeps the sink as a pure, stateless policy type:
+    // no instances, no data members, all dispatch is done by type.
+    static std::string format(view_type line) {
+        return Derived::format_impl(line);
     }
 };
 
@@ -21,8 +25,8 @@ struct SinkBase {
 struct JsonSink : SinkBase<JsonSink> {
     using view_type = std::string_view;
 
-    std::string format_impl(view_type line) const {
-        // Example: wrap the line in some JSON structure
+    // Example implementation: wrap the line in some JSON-like structure.
+    static std::string format_impl(view_type line) {
         return "JsonTest" + std::string(line);
     }
 };
@@ -31,9 +35,8 @@ struct JsonSink : SinkBase<JsonSink> {
 struct TextSink : SinkBase<TextSink> {
     using view_type = std::string_view;
 
-    std::string format_impl(view_type line) const {
-        // plain text – for example, prepend a header, timestamp, etc.
-        // or simply: return std::string{line};
+    // Plain text formatting – could prepend timestamps, severity, etc.
+    static std::string format_impl(view_type line) {
         return std::string(line);
     }
 };

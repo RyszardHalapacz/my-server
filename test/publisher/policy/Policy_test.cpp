@@ -1,30 +1,50 @@
 #include <gtest/gtest.h>
+
 #include <string>
 #include <string_view>
 #include <fstream>
+
+// Adjust the include path to your project layout if needed.
 #include "policyPublisher.hpp"
 
-// Include your real header with PolicyBase / TerminalPolicy / FilePolicy.
-// #include "publisher/policy/policy.hpp"
+// If TerminalPolicy / FilePolicy live in a namespace, uncomment and adapt:
+// using publisher::PolicyBase;
+// using publisher::TerminalPolicy;
+// using publisher::FilePolicy;
 
-// --- FakeSink & RecordingPolicy from above ---
+// ---------------------------------------------------------
+// Fake sink implementing the "Sink concept" for tests
+// ---------------------------------------------------------
 
 struct FakeSink {
     using view_type = std::string_view;
 
-    std::string format(view_type line) const {
+    // Stateless formatting entry point expected by PolicyBase:
+    //
+    // Contract:
+    //  - Takes a lightweight view of the input line.
+    //  - Returns a freshly allocated std::string with the formatted content.
+    static std::string format(view_type line) {
         return std::string{"FMT:"} + std::string{line};
     }
 };
 
+// ---------------------------------------------------------
+// Test-only policy that records last written message
+// ---------------------------------------------------------
+
 template<typename Sink>
 struct RecordingPolicy : PolicyBase<RecordingPolicy<Sink>, Sink> {
     using base_type = PolicyBase<RecordingPolicy<Sink>, Sink>;
-    using base_type::base_type;
+    using view_type = typename base_type::view_type;
+
+    // Base is stateless, so default ctor is enough.
+    RecordingPolicy() = default;
 
     std::string last_msg;
 
-    void write_impl(std::string_view msg) {
+    // write_impl is called by PolicyBase::publish(...) after formatting.
+    void write_impl(view_type msg) {
         last_msg = std::string{msg};
     }
 };
@@ -34,22 +54,20 @@ struct RecordingPolicy : PolicyBase<RecordingPolicy<Sink>, Sink> {
 // ---------------------------------------------------------
 
 TEST(PolicyBaseTest, PublishUsesSinkAndWriteImpl) {
-    FakeSink sink{};
-    RecordingPolicy<FakeSink> policy{sink};
+    RecordingPolicy<FakeSink> policy{};   // no sink instance
 
     std::string_view input{"ABC"};
 
     policy.publish(input);
 
     // We expect:
-    // 1) sink.format("ABC") -> "FMT:ABC"
-    // 2) write_impl receives "FMT:ABC"
+    //  1) FakeSink::format("ABC") -> "FMT:ABC"
+    //  2) write_impl receives "FMT:ABC"
     EXPECT_EQ(policy.last_msg, "FMT:ABC");
 }
 
 TEST(PolicyBaseTest, PublishWorksWithEmptyInput) {
-    FakeSink sink{};
-    RecordingPolicy<FakeSink> policy{sink};
+    RecordingPolicy<FakeSink> policy{};   // no sink instance
 
     std::string_view input{""};
 
@@ -59,12 +77,13 @@ TEST(PolicyBaseTest, PublishWorksWithEmptyInput) {
 }
 
 // ---------------------------------------------------------
-// Tests for TerminalPolicy (optional, using CaptureStdout)
+// Tests for TerminalPolicy (using CaptureStdout)
 // ---------------------------------------------------------
 
 TEST(TerminalPolicyTest, WritesFormattedMessageToStdout) {
-    FakeSink sink{};
-    TerminalPolicy<FakeSink> policy{sink};
+    // If TerminalPolicy is in a namespace, qualify it here:
+    // publisher::TerminalPolicy<FakeSink> policy{};
+    TerminalPolicy<FakeSink> policy{};    // no sink instance
 
     std::string_view input{"XYZ"};
 
@@ -83,7 +102,6 @@ TEST(TerminalPolicyTest, WritesFormattedMessageToStdout) {
 // ---------------------------------------------------------
 
 TEST(FilePolicyTest, WritesFormattedMessageToFile) {
-    // Use a temporary file name for the test.
     const std::string path = "FilePolicyTest.log";
 
     // Make sure file is clean before the test.
@@ -91,8 +109,9 @@ TEST(FilePolicyTest, WritesFormattedMessageToFile) {
         std::ofstream cleanup(path, std::ios::trunc);
     }
 
-    FakeSink sink{};
-    FilePolicy<FakeSink> policy{sink, path};
+    // If FilePolicy is in a namespace, qualify it here:
+    // publisher::FilePolicy<FakeSink> policy{path};
+    FilePolicy<FakeSink> policy{path};   // only file path
 
     std::string_view input{"DATA"};
 
