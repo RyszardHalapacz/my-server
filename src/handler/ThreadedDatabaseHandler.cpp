@@ -17,18 +17,17 @@ void ThreadedDatabaseHandler::run()
 {
     while(isActive)
     {
-           std::cout << "Thread index: " << idx_ << ", thread id: " << std::this_thread::get_id() << std::endl;
-
+          // std::cout << "Thread index: " << idx_ << ", thread id: " << std::this_thread::get_id() << std::endl;
 
         if(vecEvent.empty()) 
-        { std::cout << "Thread index: " << idx_ << "is empty" << std::endl;
+        { //std::cout << "Thread index: " << idx_ << "is empty" << std::endl;
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
         else
         {
             std::lock_guard<std::mutex> blockMutex(mut);
             handlingEvent();
-            std::cout << "Thread index: " << idx_ << "handlig event" << std::endl;
+           // std::cout << "Thread index: " << idx_ << "handlig event" << std::endl;
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             vecEvent.pop_back();
         }
