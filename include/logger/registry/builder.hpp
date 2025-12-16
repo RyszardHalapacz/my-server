@@ -41,7 +41,7 @@ private:
         std::index_sequence<Is...>
     ) {
         using ArgsTupleDecay = std::remove_reference_t<TupleArgs>;
-
+        static_assert( std::is_same_v<unsigned int, std::uint32_t>);
         // Compile-time check: each argument type must exactly match the field type
         (
             []<std::size_t I, typename Payload, typename PtrTuple, typename ArgTuple>() {

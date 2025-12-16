@@ -3,4 +3,5 @@ X(Server,  AddEvent)
 X(Handler, Run)
 X(Handler, terminateThreads)
 X(Handler, addEvent)
+X(Handler, handlingEvent)
 

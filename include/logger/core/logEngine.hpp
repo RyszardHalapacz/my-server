@@ -178,6 +178,7 @@ namespace logger::core::detail
                     continue;
                 }
 
+                
                 std::ostringstream oss;
                 rec->process_fn(rec->storage_ptr(), oss);
 
