@@ -56,7 +56,7 @@ TEST_F(PublisherFixture, TerminalText_UsesTextSinkAndWritesToStdout) {
 TEST_F(PublisherFixture, FileJson_PublishesFormattedMessageToLocalFile) {
     using Pub = Publisher<FilePolicy, JsonSink>;
 
-    const std::string path = "PublisherFile.log";   // <--- tu
+    const std::string path = "PublisherFile.log";  
 
     {
         std::ofstream cleanup(path, std::ios::trunc);
@@ -78,7 +78,7 @@ TEST_F(PublisherFixture, FileJson_PublishesFormattedMessageToLocalFile) {
 TEST_F(PublisherFixture, FileText_PublishesFormattedMessageToLocalFile) {
     using Pub = Publisher<FilePolicy, TextSink>;
 
-    const std::string path = "PublisherFile.log";   // <--- i tu
+    const std::string path = "PublisherFile.log";   
 
     {
         std::ofstream cleanup(path, std::ios::trunc);

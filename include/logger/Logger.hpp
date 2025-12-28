@@ -10,7 +10,9 @@ namespace logger
 
     struct Handler
     {
-        template <MsgTag Tag, typename... Args>
+        template <MsgTag Tag, 
+        typename Engine = core::detail::LogEngine,
+        typename... Args>
         static void log(Args &&...args)
         {
 
@@ -24,8 +26,8 @@ namespace logger
             // 3) payload -> packet -> MPSC queue
             // auto packet = make_log_packet(std::move(payload));
             // core().enqueue(std::move(packet));
-             auto& engine = core::detail::LogEngine::instance();
-        engine.enqueue(std::move(payload));
+             auto& engine = Engine::instance();
+            engine.enqueue(std::move(payload));
         }
 
     private:
