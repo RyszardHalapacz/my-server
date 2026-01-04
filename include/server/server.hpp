@@ -15,9 +15,21 @@
 #include "ThreadedDatabaseHandler.hpp"
 #include "ConditionVariableDatabaseHandler.hpp"
 
+// =============================================================================
+// LEGACY IMPLEMENTATION
+//
+// Simpler version based on virtual inheritance.
+// Works fine, but has vtable overhead.
+//
+// For CRTP version (zero-cost abstraction) see:
+//   - include/server/iServerCRTP.hpp        (contract)
+//   - include/server/singleThreadServer.hpp (implementation)
+// =============================================================================
+
+
 // ========= Base (generic) =========
 template <typename HandlerType>
-class ServerBase {
+class  [[deprecated("Use server::SingleThreadServer")]] erverBase {
 public:
     ServerBase() noexcept = default;
     virtual ~ServerBase() noexcept
