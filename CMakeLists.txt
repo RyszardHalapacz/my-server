@@ -60,6 +60,7 @@ test/publisher/sink/JsonSink_test.cpp
 test/publisher/policy/Policy_test.cpp
 test/publisher/Publisher_test.cpp
 test/logger/integration/full_pipeline_test.cpp
+test/server/SingleThreadServer_test.cpp 
 )
 
 add_executable(
