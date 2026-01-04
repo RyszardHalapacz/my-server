@@ -5,6 +5,21 @@
 #include <sstream>
 #include <string>
 
+template<>
+struct Publisher<::logger::test::MockPolicyTemplate, TextSink> {
+
+    template<typename Envelope>
+    static void publish(
+        const Envelope& env,
+        std::string_view (*to_view)(const Envelope&)
+    )
+    {
+        std::string_view view = to_view(env);
+        ::logger::test::MockPolicyTemplate<TextSink> policy{};
+        policy.publish(view);
+    }
+};
+
 namespace logger::core::detail
 {
     class TestLogEngine
@@ -32,9 +47,8 @@ namespace logger::core::detail
                 return std::string_view{buffer};
             };
             
-            using Pub = Publisher<test::MockPolicyTemplate, TextSink>;           
+            using Pub = Publisher<::logger::test::MockPolicyTemplate, TextSink>;           
             Pub::publish(env, adapter);
         }
     };
 }
-

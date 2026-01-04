@@ -20,22 +20,7 @@ template<
     template<typename> class PolicyTemplate,
     typename Sink
 >
-struct Publisher {
-    template<typename Envelope>
-    static void publish(
-        const Envelope& env,
-        std::string_view (*to_view)(const Envelope&)
-    )
-    {
-        // 1) Convert Envelope -> std::string_view via the adapter
-        std::string_view view = to_view(env);
-
-        // 2) Instantiate Policy with Sink (at compile time),
-        //    create a policy object and pass the string_view through it
-        PolicyTemplate<Sink> policy{Sink{}};
-        policy.publish(view);
-    }
-};
+struct Publisher;
 
 
 // ---------------------------------------------------------
