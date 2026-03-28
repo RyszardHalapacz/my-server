@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include "../test/logger/mocks/MockLogEngine.hpp"
-#include "logger/Logger.hpp"
+#include "../test/logger/mocks/mock_log_engine.hpp"
+#include "logger/logger.hpp"
 
 inline std::uint64_t now_ticks_us() noexcept
 {

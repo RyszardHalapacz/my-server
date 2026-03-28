@@ -1,6 +1,6 @@
 #pragma once
 
-#include "MockOutputPolicy.hpp"
+#include "mock_output_policy.hpp"
 #include "publisher/publisher.hpp"
 #include <sstream>
 #include <string>

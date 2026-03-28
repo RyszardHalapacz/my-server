@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <string>
 #include <string_view>
-#include "sinkPublisher.hpp"
+#include "sink_publisher.hpp"
 
 // Include your real header here, e.g.:
 // #include "logger/core/sink.hpp"

@@ -11,7 +11,7 @@
 #include <gtest/gtest.h>
 
 #include "common/messages/log_message.hpp"
-#include "logger/Logger.hpp"
+#include "logger/logger.hpp"
 
 TEST(LoggerHeaderNegativeTest, RejectsWrongHeaderTypes)
 {

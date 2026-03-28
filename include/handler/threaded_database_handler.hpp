@@ -6,12 +6,8 @@
 #include <mutex>
 #include <shared_mutex>
 #include <chrono>
-#include <thread>
-#include "logger/Logger.hpp"
-#include "Idatabasehandler.hpp"
-
-#include <chrono>
-#include <thread>
+#include "logger/logger.hpp"
+#include "database_handler_interface.hpp"
 
 inline std::uint64_t now_ticks_us() noexcept
 {
@@ -35,11 +31,10 @@ public:
 
     ThreadedDatabaseHandler(std::string &, uint32_t) {};
     void run() override;
-    void terminateThreads() override { isActive = false; };
-    global::DatabaseConntetion::status addEvent(/*param of event*/) override;
+    void terminateThreads() override { is_active_ = false; };
+    global::DatabaseConnection::status addEvent(/*param of event*/) override;
     uint32_t handlingEvent() override
     {
-
         logger::Handler::log<MsgTag::Generic>(
             Severity::Info,
             now_ticks_us(),
@@ -48,15 +43,13 @@ public:
             /*class_id*/ static_cast<std::uint16_t>(1u),
             /*method_id*/ static_cast<std::uint16_t>(4u),
             /*schema_ver*/ static_cast<std::uint16_t>(1u));
-        return vecEvent.size();
+        return events_.size();
     };
 
 private:
-    std::vector<Event> vecEvent{};
-    std::mutex mut;
-
-private:
+    std::vector<Event> events_{};
+    std::mutex mutex_;
     uint32_t idx_;
-    std::thread DbThread;
-    bool isActive{true};
+    std::thread db_thread_;
+    bool is_active_{true};
 };

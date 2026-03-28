@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "event.hpp"
-#include "server/SingleThreadServer.hpp"   // Twoja klasa dziedzicząca po ServerCRTP
+#include "server/single_thread_server.hpp"  // class inheriting from ServerCRTP
 
 using namespace server;
 
@@ -23,11 +23,11 @@ TEST(SingleThreadServer, RejectSubmitWhenNotRunning)
 {
     SingleThreadServer s{16};
 
-    // nie startujemy
+    // server not started
     auto st = s.trySubmit(Event{});
     EXPECT_EQ(st, SubmitStatus::rejected_stopped);
 
-    // metryki powinny to odzwierciedlać
+    // metrics should reflect this
     auto m = s.metrics();
     EXPECT_EQ(m.rejected_stopped_total, 1u);
 }
@@ -40,7 +40,7 @@ TEST(SingleThreadServer, AcceptSubmitWhenRunning)
     auto st = s.trySubmit(Event{});
     EXPECT_EQ(st, SubmitStatus::accepted);
 
-    // accepted rośnie, niezależnie od tego czy event już został przetworzony
+    // accepted increments regardless of whether the event has been processed yet
     auto m = s.metrics();
     EXPECT_EQ(m.accepted_total, 1u);
 
@@ -50,7 +50,7 @@ TEST(SingleThreadServer, AcceptSubmitWhenRunning)
 
 TEST(SingleThreadServer, RejectWhenQueueFullDeterministic)
 {
-    // Klucz: capacity=0 daje w 100% deterministyczne rejected_full
+    // Key: capacity=0 gives 100% deterministic rejected_full
     SingleThreadServer s{0};
     ASSERT_TRUE(s.start());
 
@@ -71,7 +71,7 @@ TEST(SingleThreadServer, RejectAfterShutdown)
 
     s.shutdown(ShutdownMode::graceful);
 
-    // Po shutdownie – kontraktowo odrzucamy
+    // After shutdown — contractually we reject
     auto st = s.trySubmit(Event{});
     EXPECT_EQ(st, SubmitStatus::rejected_stopped);
 

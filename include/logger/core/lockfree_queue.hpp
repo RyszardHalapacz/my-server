@@ -1,5 +1,5 @@
 #pragma once
-#include "logRecord.hpp"
+#include "log_record.hpp"
 
 namespace logger::core::detail
 {

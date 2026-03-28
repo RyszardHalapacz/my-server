@@ -4,8 +4,8 @@
 #include <string_view>
 #include <fstream>
 
-#include "sinkPublisher.hpp"
-#include "policyPublisher.hpp"
+#include "sink_publisher.hpp"
+#include "policy_publisher.hpp"
 #include "publisher.hpp"
 #include "common/messages/traits.hpp"
 

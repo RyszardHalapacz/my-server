@@ -41,7 +41,7 @@ struct TextSink : SinkBase<TextSink> {
         size_t pos = 0;
         
         while (pos < line.size()) {
-            // Szukaj timestamp=
+            // Search for timestamp=
             auto ts_pos = line.find("timestamp=", pos);
             if (ts_pos != std::string_view::npos) {
                 result.append(line.substr(pos, ts_pos - pos));
@@ -59,7 +59,7 @@ struct TextSink : SinkBase<TextSink> {
                 continue;
             }
             
-            // Szukaj class_id=
+            // Search for class_id=
             auto class_pos = line.find("class_id=", pos);
             if (class_pos != std::string_view::npos && (ts_pos == std::string_view::npos || class_pos < ts_pos)) {
                 result.append(line.substr(pos, class_pos - pos));
@@ -77,7 +77,7 @@ struct TextSink : SinkBase<TextSink> {
                 continue;
             }
             
-            // Szukaj method_id=
+            // Search for method_id=
             auto method_pos = line.find("method_id=", pos);
             if (method_pos != std::string_view::npos && 
                 (ts_pos == std::string_view::npos || method_pos < ts_pos) &&
@@ -97,7 +97,7 @@ struct TextSink : SinkBase<TextSink> {
                 continue;
             }
             
-            // Nic nie znaleziono - przepisz resztę
+            // Nothing found — copy the rest
             result.append(line.substr(pos));
             break;
         }

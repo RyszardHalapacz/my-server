@@ -2,8 +2,8 @@
 #include <string_view>
 #include <utility>
 
-#include "sinkPublisher.hpp"
-#include "policyPublisher.hpp"
+#include "sink_publisher.hpp"
+#include "policy_publisher.hpp"
 
 // Envelope       – any envelope type (RequestPayload, ResponsePayload, etc.)
 // Sink           – a concrete sink, e.g. JsonSink, TextSink
@@ -70,7 +70,7 @@ struct Publisher<FilePolicy, JsonSink> {
     {
         std::string_view view = to_view(env);
 
-        FilePolicy<JsonSink> policy{};   // tu zakładam default ctor
+        FilePolicy<JsonSink> policy{};   // assumes default ctor
         policy.publish(view);
     }
 };

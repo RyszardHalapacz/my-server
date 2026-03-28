@@ -1,11 +1,11 @@
 #pragma once
 namespace global
 {
-    namespace DatabaseConntetion
+    namespace DatabaseConnection
     {
         enum class status
         {
-            succes,
+            success,
             error
         };
     }

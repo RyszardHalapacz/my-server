@@ -11,9 +11,9 @@
 #include <thread>
 #include <vector>
 
-#include "comon.h"
-#include "ThreadedDatabaseHandler.hpp"
-#include "ConditionVariableDatabaseHandler.hpp"
+#include "common.h"
+#include "threaded_database_handler.hpp"
+#include "condition_variable_database_handler.hpp"
 
 // =============================================================================
 // LEGACY IMPLEMENTATION
@@ -29,7 +29,7 @@
 
 // ========= Base (generic) =========
 template <typename HandlerType>
-class  [[deprecated("Use server::SingleThreadServer")]] erverBase {
+class  [[deprecated("Use server::SingleThreadServer")]] ServerBase {
 public:
     ServerBase() noexcept = default;
     virtual ~ServerBase() noexcept

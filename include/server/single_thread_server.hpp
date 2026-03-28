@@ -1,4 +1,4 @@
-// include/server/SingleThreadServer.hpp
+// include/server/single_thread_server.hpp
 #pragma once
 
 #include <atomic>
@@ -9,8 +9,8 @@
 #include <thread>
 #include <utility>
 
-#include "iServerCRTP.hpp"
-#include "server/metrics/Metrics.hpp"
+#include "server_crtp.hpp"
+#include "server/metrics/metrics.hpp"
 #include "event.hpp"
 
 namespace server {

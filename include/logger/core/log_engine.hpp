@@ -8,8 +8,8 @@
 #include <utility>
 #include <new>
 #include <iostream>
-#include "logRecord.hpp"
-#include "lockfreeQueue.hpp"
+#include "log_record.hpp"
+#include "lockfree_queue.hpp"
 #include "publisher.hpp"
 #include "stream_adapter.hpp"
 

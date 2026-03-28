@@ -4,7 +4,7 @@
 
 TEST(RequestPayload, IsTriviallyCopyable) {
   static_assert(std::is_trivially_copyable_v<RequestPayload>,
-                "Powinno być trivially copyable (zawiera tylko POD + string_view)");
+                "Should be trivially copyable (contains only POD + string_view)");
   SUCCEED();
 }
 

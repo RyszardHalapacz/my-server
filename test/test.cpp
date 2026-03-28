@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <memory>
 #include "server.hpp"
-#include "comon.h"
+#include "common.h"
 
 // Demonstrate some basic assertions.
 TEST(Test, test)
