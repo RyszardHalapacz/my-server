@@ -61,9 +61,10 @@ protected:
     mutable std::mutex mutex_;                     
 };
 
-// ========= Base<void> specialization =========
+// Kept for educational purposes — demonstrates virtual dispatch-based server.
+// Preferred approach: server::SingleThreadServer (CRTP, zero-cost).
 template <>
-class ServerBase<void> {
+class [[deprecated("Use server::SingleThreadServer")]] ServerBase<void> {
 public:
     ServerBase() noexcept = default;
     virtual ~ServerBase() noexcept = default;
@@ -80,8 +81,9 @@ protected:
     std::atomic<uint32_t> requestCounter_{0};
 };
 
-// ========= ServerConditionVar =========
-class ServerConditionVar : public ServerBase<ConditionVariableDatabaseHandler> {
+// Kept for educational purposes — server using condition_variable with multi-threaded handlers.
+// Preferred approach: server::SingleThreadServer (CRTP, zero-cost).
+class [[deprecated("Use server::SingleThreadServer")]] ServerConditionVar : public ServerBase<ConditionVariableDatabaseHandler> {
 public:
     ServerConditionVar() {
         for (uint32_t i = 0; i < this->maxThreads_; ++i) {
@@ -104,8 +106,9 @@ private:
     std::condition_variable  cv_;
 };
 
-// ========= ServerThreaded =========
-class ServerThreaded : public ServerBase<ThreadedDatabaseHandler> {
+// Kept for educational purposes — server with round-robin event distribution across threads.
+// Preferred approach: server::SingleThreadServer (CRTP, zero-cost).
+class [[deprecated("Use server::SingleThreadServer")]] ServerThreaded : public ServerBase<ThreadedDatabaseHandler> {
 public:
     ServerThreaded() {
         for (uint32_t i = 0; i < this->maxThreads_; ++i) 
@@ -122,8 +125,9 @@ public:
     }
 };
 
-// ========= ServerAsync =========
-class ServerAsync : public ServerBase<void> {
+// Kept for educational purposes — server using std::async, each event in a separate task.
+// Preferred approach: server::SingleThreadServer (CRTP, zero-cost).
+class [[deprecated("Use server::SingleThreadServer")]] ServerAsync : public ServerBase<void> {
 public:
     ServerAsync() = default;
 
@@ -147,8 +151,9 @@ private:
     std::vector<std::future<Event>> futures_;
 };
 
-// ========= ServerSingleThread =========
-class ServerSingleThread : public ServerBase<void> {
+// Kept for educational purposes — simplest server, synchronous handling in the main thread.
+// Preferred approach: server::SingleThreadServer (CRTP, zero-cost).
+class [[deprecated("Use server::SingleThreadServer")]] ServerSingleThread : public ServerBase<void> {
 public:
     int addEvent(Event event) override {
         std::cout << "Handled event " << ++requestCounter_

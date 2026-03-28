@@ -1,9 +1,19 @@
+// =============================================================================
+// Legacy server tests (ServerBase, ServerConditionVar, etc.)
+// Kept for educational purposes — commented out intentionally.
+// Active server classes: server::SingleThreadServer (CRTP).
+// =============================================================================
+
 #include <gtest/gtest.h>
 #include <memory>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include "server.hpp"
+#pragma GCC diagnostic pop
+
 #include "common.h"
 
-// Demonstrate some basic assertions.
 TEST(Test, test)
 {
   ASSERT_TRUE(true);

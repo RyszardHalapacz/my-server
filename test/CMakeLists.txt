@@ -30,6 +30,13 @@ add_executable(main_test
     server/metrics_mixin_test.cpp
     handler/threaded_database_handler_test.cpp
     handler/condition_variable_handler_test.cpp
+    stress/mpsc_queue_stress_test.cpp
+    stress/freelist_stress_test.cpp
+    stress/log_engine_stress_test.cpp
+)
+
+target_include_directories(main_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_link_libraries(main_test PRIVATE

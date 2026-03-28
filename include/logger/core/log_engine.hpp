@@ -168,38 +168,47 @@ namespace logger::core::detail
         {
             using namespace std::chrono_literals;
 
+            LogRecord* pending_recycle = nullptr;
+
             while (run_.load(std::memory_order_acquire) || !queue_.empty())
             {
                 LogRecord *rec = queue_.pop();
                 if (!rec)
                 {
-
                     std::this_thread::sleep_for(50us);
                     continue;
                 }
 
-                
+                if (pending_recycle)
+                {
+                    freelist_.push(pending_recycle);
+                }
+
                 std::ostringstream oss;
                 rec->process_fn(rec->storage_ptr(), oss);
-
                 rec->submit_fn(rec->storage_ptr());
-
                 rec->destroy_fn(rec->storage_ptr());
                 written_.fetch_add(1, std::memory_order_relaxed);
-                freelist_.push(rec);
+
+                pending_recycle = rec;
             }
 
-            // Optionally drain any remaining records after run_ becomes false.
             LogRecord *rec = nullptr;
             while ((rec = queue_.pop()) != nullptr)
             {
+                if (pending_recycle)
+                {
+                    freelist_.push(pending_recycle);
+                }
+
                 std::ostringstream oss;
                 rec->process_fn(rec->storage_ptr(), oss);
                 std::cout << oss.str() << '\n';
 
                 rec->destroy_fn(rec->storage_ptr());
                 written_.fetch_add(1, std::memory_order_relaxed);
-                freelist_.push(rec);
+
+                pending_recycle = rec;
             }
         }
 
