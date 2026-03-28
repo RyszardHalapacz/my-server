@@ -17,11 +17,19 @@ add_executable(main_test
     logger/logger_header_smoke_test.cpp
     logger/logger_header_negative_test.cpp
     logger/core/stream_adapter_test.cpp
+    logger/core/log_record_test.cpp
+    logger/core/freelist_test.cpp
+    logger/core/mpsc_queue_test.cpp
     publisher/sink/json_sink_test.cpp
+    publisher/sink/text_sink_test.cpp
     publisher/policy/policy_test.cpp
     publisher/publisher_test.cpp
     logger/integration/full_pipeline_test.cpp
     server/single_thread_server_test.cpp
+    server/single_thread_server_extended_test.cpp
+    server/metrics_mixin_test.cpp
+    handler/threaded_database_handler_test.cpp
+    handler/condition_variable_handler_test.cpp
 )
 
 target_link_libraries(main_test PRIVATE
