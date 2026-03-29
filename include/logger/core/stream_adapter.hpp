@@ -1,8 +1,10 @@
 #pragma once
 
+#include <array>
 #include <ostream>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <type_traits>
 
 #include "common/messages/traits.hpp"
@@ -37,6 +39,29 @@ template<typename T>
 concept EnvelopeLike =
     HasPrintHeader<T> &&
     (HasDebugPrint<T> || OstreamInsertable<T>);
+
+// Fixed-size streambuf — writes into an internal char array.
+// No heap allocation. Overflow (message too long) truncates silently.
+template<std::size_t N>
+struct FixedStringBuf : std::streambuf
+{
+    FixedStringBuf()  { setp(buf_.data(), buf_.data() + N); }
+    void reset()      { setp(buf_.data(), buf_.data() + N); }
+
+    std::string_view view() const noexcept
+    {
+        return {buf_.data(), static_cast<std::size_t>(pptr() - pbase())};
+    }
+
+private:
+    // Silently drop bytes that exceed the buffer.
+    int_type overflow(int_type ch) override
+    {
+        return ch; // consume but discard
+    }
+
+    std::array<char, N> buf_{};
+};
 
 // ------------------------------------------------------------------
 // StreamAdapter

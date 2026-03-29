@@ -9,6 +9,7 @@
 using namespace harness;
 using namespace stress;
 using logger::core::detail::LogRecord;
+using logger::core::detail::MpscNode;
 using logger::core::detail::MpscQueue;
 
 class MpscQueueStressTest
@@ -27,9 +28,9 @@ TEST_P(MpscQueueStressTest, AllRecordsArrivedNoDuplicates) {
     EXPECT_EQ(result.total_failure(), 0u);
 
     std::set<LogRecord*> popped;
-    LogRecord* rec = nullptr;
-    while ((rec = stress.queue().pop()) != nullptr) {
-        popped.insert(rec);
+    MpscNode* node = nullptr;
+    while ((node = stress.queue().pop()) != nullptr) {
+        popped.insert(static_cast<LogRecord*>(node));
     }
 
     EXPECT_EQ(popped.size(), total);
@@ -46,9 +47,10 @@ TEST_P(MpscQueueStressTest, AllRecordsAreFromPreallocatedPool) {
     LogRecord* first = records.data();
     LogRecord* last  = records.data() + records.size();
 
-    LogRecord* rec = nullptr;
+    MpscNode* node2 = nullptr;
     std::size_t count = 0;
-    while ((rec = stress.queue().pop()) != nullptr) {
+    while ((node2 = stress.queue().pop()) != nullptr) {
+        LogRecord* rec = static_cast<LogRecord*>(node2);
         EXPECT_GE(rec, first) << "Pointer below pool range";
         EXPECT_LT(rec, last)  << "Pointer above pool range";
         ++count;
@@ -65,8 +67,9 @@ TEST_P(MpscQueueStressTest, FIFOPerProducer) {
 
     // Drain queue and group sequences by thread_id
     std::map<std::size_t, std::vector<std::size_t>> per_thread;
-    LogRecord* rec = nullptr;
-    while ((rec = stress.queue().pop()) != nullptr) {
+    MpscNode* node3 = nullptr;
+    while ((node3 = stress.queue().pop()) != nullptr) {
+        LogRecord* rec = static_cast<LogRecord*>(node3);
         auto tag = MpscQueueStress::read_tag(rec);
         per_thread[tag.thread_id].push_back(tag.sequence);
     }
@@ -108,17 +111,17 @@ TEST_P(MpscQueueStressTest, ConcurrentPushPop) {
         while (!producers_done.load(std::memory_order_acquire)
                || !queue.empty())
         {
-            LogRecord* rec = queue.pop();
-            if (rec) {
-                consumed.push_back(rec);
+            MpscNode* n = queue.pop();
+            if (n) {
+                consumed.push_back(static_cast<LogRecord*>(n));
             }
         }
 
         // Final drain — catch records published between last empty() check
         // and producers_done flag
-        LogRecord* rec = nullptr;
-        while ((rec = queue.pop()) != nullptr) {
-            consumed.push_back(rec);
+        MpscNode* n = nullptr;
+        while ((n = queue.pop()) != nullptr) {
+            consumed.push_back(static_cast<LogRecord*>(n));
         }
     });
 

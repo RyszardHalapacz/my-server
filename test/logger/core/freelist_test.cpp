@@ -18,7 +18,7 @@ TEST(FreeList, PushPopSingle) {
     fl.push(&node);
     EXPECT_FALSE(fl.empty());
 
-    auto* popped = fl.try_pop();
+    auto* popped = static_cast<LogRecord*>(fl.try_pop());
     EXPECT_EQ(popped, &node);
     EXPECT_TRUE(fl.empty());
 }
@@ -31,9 +31,9 @@ TEST(FreeList, LIFOOrdering) {
     fl.push(&b);
     fl.push(&c);
 
-    EXPECT_EQ(fl.try_pop(), &c);
-    EXPECT_EQ(fl.try_pop(), &b);
-    EXPECT_EQ(fl.try_pop(), &a);
+    EXPECT_EQ(static_cast<LogRecord*>(fl.try_pop()), &c);
+    EXPECT_EQ(static_cast<LogRecord*>(fl.try_pop()), &b);
+    EXPECT_EQ(static_cast<LogRecord*>(fl.try_pop()), &a);
     EXPECT_TRUE(fl.empty());
 }
 
@@ -55,7 +55,7 @@ TEST(FreeList, PushNPopNAllReturned) {
 
     std::set<LogRecord*> popped;
     for (int i = 0; i < N; ++i) {
-        auto* p = fl.try_pop();
+        auto* p = static_cast<LogRecord*>(fl.try_pop());
         ASSERT_NE(p, nullptr);
         popped.insert(p);
     }

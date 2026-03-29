@@ -9,6 +9,7 @@
 namespace stress {
 
 using logger::core::detail::FreeList;
+using logger::core::detail::FreeNode;
 using logger::core::detail::LogRecord;
 
 // Production pattern: multiple threads pop concurrently (acquire_record),
@@ -32,7 +33,7 @@ public:
 
     // Each thread: pop from freelist (acquire pattern)
     bool do_impl(std::size_t tid, std::size_t /*iteration*/) noexcept {
-        LogRecord* rec = freelist_.try_pop();
+        LogRecord* rec = static_cast<LogRecord*>(freelist_.try_pop());
         if (!rec) {
             return false; // pool exhausted
         }

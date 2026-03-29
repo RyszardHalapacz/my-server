@@ -8,6 +8,7 @@
 using namespace harness;
 using namespace stress;
 using logger::core::detail::FreeList;
+using logger::core::detail::FreeNode;
 using logger::core::detail::LogRecord;
 
 struct FreeListTestConfig {
@@ -39,9 +40,9 @@ TEST_P(FreeListStressTest, ConcurrentPopNoDuplicates) {
 
     // popped + remaining in freelist = pool_size
     std::set<LogRecord*> remaining;
-    LogRecord* rec = nullptr;
-    while ((rec = stress.freelist().try_pop()) != nullptr) {
-        remaining.insert(rec);
+    FreeNode* node = nullptr;
+    while ((node = stress.freelist().try_pop()) != nullptr) {
+        remaining.insert(static_cast<LogRecord*>(node));
     }
 
     EXPECT_EQ(unique.size() + remaining.size(), pool_size)
@@ -102,7 +103,7 @@ TEST_P(FreeListStressTest, MultiPopSinglePushRecycle) {
         while (!go.load(std::memory_order_acquire)) {}
 
         for (std::size_t i = 0; i < cfg.iterations_per_thread; ++i) {
-            LogRecord* rec = fl.try_pop();
+            LogRecord* rec = static_cast<LogRecord*>(fl.try_pop());
             if (rec) {
                 std::size_t idx = write_idx.fetch_add(1, std::memory_order_relaxed);
                 if (idx < channel.size()) {
@@ -157,9 +158,9 @@ TEST_P(FreeListStressTest, MultiPopSinglePushRecycle) {
 
     // All nodes back in freelist
     std::set<LogRecord*> recovered;
-    LogRecord* rec = nullptr;
-    while ((rec = fl.try_pop()) != nullptr) {
-        recovered.insert(rec);
+    FreeNode* fn = nullptr;
+    while ((fn = fl.try_pop()) != nullptr) {
+        recovered.insert(static_cast<LogRecord*>(fn));
     }
 
     EXPECT_EQ(recovered.size(), pool_size)

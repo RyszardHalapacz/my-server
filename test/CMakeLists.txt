@@ -20,6 +20,7 @@ add_executable(main_test
     logger/core/log_record_test.cpp
     logger/core/freelist_test.cpp
     logger/core/mpsc_queue_test.cpp
+    logger/core/log_engine_pipeline_test.cpp
     publisher/sink/json_sink_test.cpp
     publisher/sink/text_sink_test.cpp
     publisher/policy/policy_test.cpp

@@ -23,7 +23,6 @@ TEST(LogRecord, NotPolymorphic) {
 
 TEST(LogRecord, FunctionPointersDefaultToNull) {
     LogRecord rec{};
-    EXPECT_EQ(rec.process_fn, nullptr);
     EXPECT_EQ(rec.destroy_fn, nullptr);
     EXPECT_EQ(rec.submit_fn, nullptr);
 }

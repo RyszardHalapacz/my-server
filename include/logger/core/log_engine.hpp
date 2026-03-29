@@ -55,9 +55,8 @@ namespace logger::core::detail
             // placement-new + std::move – ZERO copies of the envelope
             new (mem) Stored{std::move(env)};
 
-            rec->process_fn = &process_impl<Stored>;
             rec->destroy_fn = &destroy_impl<Stored>;
-            rec->submit_fn = &submit_impl<Stored>;
+            rec->submit_fn  = &submit_impl<Stored>;
 
             push_to_queue(rec);
             enqueued_.fetch_add(1, std::memory_order_relaxed);
@@ -71,26 +70,22 @@ namespace logger::core::detail
     template<typename Stored>
     static void submit_impl(void* storage)
     {
-        // 1) Cast void* → Stored* → Envelope&
         auto* obj = static_cast<Stored*>(storage);
-        auto& env = obj->env;  // ← Typed envelope!
-        
-        // 2) Define adapter (envelope → string_view)
-         using Envelope  = std::decay_t<decltype(env)>;
-    using AdapterFn = std::string_view (*)(const Envelope&);
+        auto& env = obj->env;
 
-        AdapterFn adapter = [](const auto& envelope) -> std::string_view {
-            thread_local std::string buffer;
-            buffer.clear();
-            
-            std::ostringstream oss;
-            envelope.debug_print(oss);
-            buffer = oss.str();
-            
-            return std::string_view{buffer};
+        using Envelope  = std::decay_t<decltype(env)>;
+        using AdapterFn = std::string_view (*)(const Envelope&);
+
+        AdapterFn adapter = [](const Envelope& envelope) -> std::string_view {
+            thread_local FixedStringBuf<1024> buf;
+            thread_local std::ostream os(&buf);
+            buf.reset();
+            os.clear();
+
+            envelope.debug_print(os);
+            return buf.view();
         };
-        
-        // 3) Call Publisher with TYPED envelope
+
         // TODO: Make Policy/Sink configurable via LogEngine::config_
         using Pub = Publisher<TerminalPolicy, TextSink>;
         Pub::publish(env, adapter);
@@ -118,17 +113,6 @@ namespace logger::core::detail
             obj->~Stored();
         }
 
-// type-erased processing: invoke the method on the envelope
-        template <typename Stored>
-        static void process_impl(void *storage, std::ostream &os)
-        {
-            auto *obj = static_cast<Stored *>(storage);
-            auto &env = obj->env;
-
-
-
-
-        }
 
         void ensure_running()
         {
@@ -156,7 +140,8 @@ namespace logger::core::detail
 
         LogRecord *acquire_record()
         {
-            return freelist_.try_pop(); 
+            FreeNode *node = freelist_.try_pop();
+            return node ? static_cast<LogRecord *>(node) : nullptr;
         }
 
         void push_to_queue(LogRecord *rec)
@@ -172,20 +157,19 @@ namespace logger::core::detail
 
             while (run_.load(std::memory_order_acquire) || !queue_.empty())
             {
-                LogRecord *rec = queue_.pop();
-                if (!rec)
+                MpscNode *node = queue_.pop();
+                if (!node)
                 {
                     std::this_thread::sleep_for(50us);
                     continue;
                 }
+                LogRecord *rec = static_cast<LogRecord *>(node);
 
                 if (pending_recycle)
                 {
                     freelist_.push(pending_recycle);
                 }
 
-                std::ostringstream oss;
-                rec->process_fn(rec->storage_ptr(), oss);
                 rec->submit_fn(rec->storage_ptr());
                 rec->destroy_fn(rec->storage_ptr());
                 written_.fetch_add(1, std::memory_order_relaxed);
@@ -193,23 +177,25 @@ namespace logger::core::detail
                 pending_recycle = rec;
             }
 
-            LogRecord *rec = nullptr;
-            while ((rec = queue_.pop()) != nullptr)
+            MpscNode *node = nullptr;
+            while ((node = queue_.pop()) != nullptr)
             {
+                LogRecord *rec = static_cast<LogRecord *>(node);
                 if (pending_recycle)
                 {
                     freelist_.push(pending_recycle);
                 }
 
-                std::ostringstream oss;
-                rec->process_fn(rec->storage_ptr(), oss);
-                std::cout << oss.str() << '\n';
-
+                rec->submit_fn(rec->storage_ptr());
                 rec->destroy_fn(rec->storage_ptr());
                 written_.fetch_add(1, std::memory_order_relaxed);
 
                 pending_recycle = rec;
             }
+
+            queue_.reset();
+            if (pending_recycle)
+                freelist_.push(pending_recycle);
         }
 
         void stop_worker() noexcept

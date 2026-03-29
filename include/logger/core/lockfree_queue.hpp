@@ -3,33 +3,39 @@
 
 namespace logger::core::detail
 {
-    using Node = LogRecord;
+    // NOTE: This is a Treiber stack with a theoretical ABA risk.
+    // In practice acceptable: this is a logger (not safety-critical),
+    // ABA would corrupt at most one log entry, and the window is small
+    // (worker must recycle a node before a stale CAS completes).
+    // A tagged-pointer fix would require 128-bit CAS (x86-64 only) or
+    // bit manipulation — both undesirable for a Raspberry Pi target.
     class FreeList
     {
-        std::atomic<Node *> head_{nullptr};
+        std::atomic<FreeNode*> head_{nullptr};
 
     public:
         FreeList() = default;
 
-        void push(Node *n) noexcept
+        void push(FreeNode* n) noexcept
         {
-            // Treiber stack
-            Node *h = head_.load(std::memory_order_relaxed);
+            FreeNode* h = head_.load(std::memory_order_relaxed);
             do
             {
                 n->free_next = h;
             } while (!head_.compare_exchange_weak(h, n,
-                                                  std::memory_order_release, std::memory_order_relaxed));
+                                                  std::memory_order_release,
+                                                  std::memory_order_relaxed));
         }
 
-        Node *try_pop() noexcept
+        FreeNode* try_pop() noexcept
         {
-            Node *h = head_.load(std::memory_order_acquire);
+            FreeNode* h = head_.load(std::memory_order_acquire);
             while (h)
             {
-                Node *next = h->free_next;
+                FreeNode* next = h->free_next;
                 if (head_.compare_exchange_weak(h, next,
-                                                std::memory_order_acq_rel, std::memory_order_acquire))
+                                                std::memory_order_acq_rel,
+                                                std::memory_order_acquire))
                 {
                     return h;
                 }
@@ -45,9 +51,9 @@ namespace logger::core::detail
 
     class MpscQueue
     {
-        std::atomic<Node *> tail_;
-        Node *head_;
-        Node stub_;
+        std::atomic<MpscNode *> tail_;
+        MpscNode *head_;
+        MpscNode stub_;
 
     public:
         MpscQueue()
@@ -58,42 +64,49 @@ namespace logger::core::detail
         }
 
         // PRODUCER: lock-free O(1)
-        void push(Node *n) noexcept
+        void push(MpscNode *n) noexcept
         {
-            n->next.store(nullptr, std::memory_order_relaxed);         // init link
-            Node *prev = tail_.exchange(n, std::memory_order_acq_rel); // append
-            prev->next.store(n, std::memory_order_release);            // publish
+            n->next.store(nullptr, std::memory_order_relaxed);
+            MpscNode *prev = tail_.exchange(n, std::memory_order_acq_rel);
+            prev->next.store(n, std::memory_order_release);
         }
 
         // CONSUMER: single-thread pop FIFO
-        Node *pop() noexcept
+        MpscNode *pop() noexcept
         {
-            Node *head = head_;
-            Node *next = head->next.load(std::memory_order_acquire);
+            MpscNode *head = head_;
+            MpscNode *next = head->next.load(std::memory_order_acquire);
             if (!next)
             {
                 if (tail_.load(std::memory_order_acquire) == head)
-                {
-                    return nullptr; // pusto
-                }
+                    return nullptr;
                 // wait until the producer publishes the next pointer
                 do
                 {
                     next = head->next.load(std::memory_order_acquire);
                 } while (!next);
             }
-            head_ = next; // advance the head
-            return next;  // this is the node containing the data
+            head_ = next;
+            return next;
         }
 
         bool empty() const noexcept
         {
-            Node *head = head_;
-            Node *next = head->next.load(std::memory_order_acquire);
+            MpscNode *head = head_;
+            MpscNode *next = head->next.load(std::memory_order_acquire);
             if (next)
                 return false;
             return tail_.load(std::memory_order_acquire) == head;
         }
-    };
 
+        // Restore stub_ as the dummy node. Call after draining the queue
+        // (worker shutdown) and before recycling the last pending_recycle node,
+        // to prevent a self-loop when that node is re-enqueued in the next run.
+        void reset() noexcept
+        {
+            stub_.next.store(nullptr, std::memory_order_relaxed);
+            head_ = &stub_;
+            tail_.store(&stub_, std::memory_order_relaxed);
+        }
+    };
 }

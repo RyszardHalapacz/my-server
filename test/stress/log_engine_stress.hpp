@@ -19,6 +19,7 @@ namespace stress {
 
 using logger::core::detail::FreeList;
 using logger::core::detail::MpscQueue;
+using logger::core::detail::MpscNode;
 using logger::core::detail::LogRecord;
 
 // Instancjowalny pipeline identyczny z LogEngine, ale bez singletona.
@@ -50,7 +51,7 @@ public:
 
     template <typename Envelope>
     bool enqueue(Envelope&& env) {
-        LogRecord* rec = freelist_.try_pop();
+        LogRecord* rec = static_cast<LogRecord*>(freelist_.try_pop());
         if (!rec) {
             dropped_.fetch_add(1, std::memory_order_relaxed);
             return false;
@@ -67,7 +68,6 @@ public:
         rec->destroy_fn = [](void* s) noexcept {
             static_cast<Stored*>(s)->~Stored();
         };
-        rec->process_fn = [](void*, std::ostream&) {};
         rec->submit_fn  = [](void*) {};
 
         queue_.push(rec);
@@ -96,25 +96,13 @@ private:
         LogRecord* pending_recycle = nullptr;
 
         while (run_.load(std::memory_order_acquire) || !queue_.empty()) {
-            LogRecord* rec = queue_.pop();
-            if (!rec) {
+            MpscNode* node = queue_.pop();
+            if (!node) {
                 std::this_thread::sleep_for(50us);
                 continue;
             }
+            LogRecord* rec = static_cast<LogRecord*>(node);
 
-            if (pending_recycle) {
-                freelist_.push(pending_recycle);
-            }
-
-            rec->process_fn(rec->storage_ptr(), null_stream_);
-            rec->destroy_fn(rec->storage_ptr());
-            written_.fetch_add(1, std::memory_order_relaxed);
-
-            pending_recycle = rec;
-        }
-
-        LogRecord* rec = nullptr;
-        while ((rec = queue_.pop()) != nullptr) {
             if (pending_recycle) {
                 freelist_.push(pending_recycle);
             }
@@ -124,6 +112,23 @@ private:
 
             pending_recycle = rec;
         }
+
+        MpscNode* drain_node = nullptr;
+        while ((drain_node = queue_.pop()) != nullptr) {
+            LogRecord* rec = static_cast<LogRecord*>(drain_node);
+            if (pending_recycle) {
+                freelist_.push(pending_recycle);
+            }
+
+            rec->destroy_fn(rec->storage_ptr());
+            written_.fetch_add(1, std::memory_order_relaxed);
+
+            pending_recycle = rec;
+        }
+
+        queue_.reset();
+        if (pending_recycle)
+            freelist_.push(pending_recycle);
     }
 
     std::size_t pool_size_;
@@ -137,10 +142,6 @@ private:
     std::atomic<uint64_t> enqueued_{0};
     std::atomic<uint64_t> written_{0};
 
-    // Null stream for process_fn (we don't need output in stress tests)
-    struct NullStream : std::ostream {
-        NullStream() : std::ostream(nullptr) {}
-    } null_stream_;
 };
 
 // Minimal envelope for stress testing — fits in LogRecord storage
