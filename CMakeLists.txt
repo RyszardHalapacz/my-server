@@ -11,16 +11,12 @@ endif()
 
 # ── Shared production library ─────────────────────────────────────────────────
 add_library(myserver_lib STATIC
-    src/server/server.cpp
-    src/handler/threaded_database_handler.cpp
-    src/handler/condition_variable_database_handler.cpp
     src/logger/log_names.cpp
 )
 
 target_include_directories(myserver_lib PUBLIC
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/include/server
-    ${CMAKE_SOURCE_DIR}/include/handler
     ${CMAKE_SOURCE_DIR}/include/publisher
     ${CMAKE_SOURCE_DIR}/include/logger/registry
 )

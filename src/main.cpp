@@ -1,4 +1,3 @@
-#include "server.hpp"
 #include "single_thread_server.hpp"
 #include "event.hpp"
 
