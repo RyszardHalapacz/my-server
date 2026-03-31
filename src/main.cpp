@@ -1,4 +1,4 @@
-#include "single_thread_server.hpp"
+#include "server/server.h"
 #include "event.hpp"
 
 int main()

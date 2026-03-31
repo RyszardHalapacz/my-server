@@ -3,9 +3,20 @@
 #include <atomic>
 #include <cstdint>
 
-#include "server/server_crtp.hpp"  // provides server::ServerMetrics
+namespace server {
 
-namespace server::metrics {
+struct ServerMetrics {
+    uint64_t accepted_total          = 0;
+    uint64_t rejected_full_total     = 0;
+    uint64_t rejected_stopped_total  = 0;
+    uint64_t invalid_total           = 0;
+    uint64_t error_total             = 0;
+
+    uint64_t queue_depth_snapshot    = 0;
+    uint64_t inflight_snapshot       = 0;
+};
+
+namespace metrics {
 
 struct MetricsMixin {
     std::atomic<uint64_t> accepted_{0};
@@ -24,9 +35,8 @@ struct MetricsMixin {
     void inflightInc() noexcept { inflight_.fetch_add(1, std::memory_order_relaxed); }
     void inflightDec() noexcept { inflight_.fetch_sub(1, std::memory_order_relaxed); }
 
-    // NOTE: returns server::ServerMetrics (the only metrics type in the system)
-    [[nodiscard]] server::ServerMetrics snapshot(uint64_t queueDepth) const noexcept {
-        server::ServerMetrics m;
+    [[nodiscard]] ServerMetrics snapshot(uint64_t queueDepth) const noexcept {
+        ServerMetrics m;
         m.accepted_total          = accepted_.load(std::memory_order_relaxed);
         m.rejected_full_total     = rejected_full_.load(std::memory_order_relaxed);
         m.rejected_stopped_total  = rejected_stopped_.load(std::memory_order_relaxed);
@@ -38,4 +48,5 @@ struct MetricsMixin {
     }
 };
 
-} // namespace server::metrics
+} // namespace metrics
+} // namespace server

@@ -25,9 +25,8 @@ add_executable(main_test
     publisher/policy/policy_test.cpp
     publisher/publisher_test.cpp
     logger/integration/full_pipeline_test.cpp
-    server/single_thread_server_test.cpp
-    server/single_thread_server_extended_test.cpp
     server/metrics_mixin_test.cpp
+    server/server_components_test.cpp
     stress/mpsc_queue_stress_test.cpp
     stress/freelist_stress_test.cpp
     stress/log_engine_stress_test.cpp

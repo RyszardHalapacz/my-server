@@ -12,6 +12,7 @@ endif()
 # ── Shared production library ─────────────────────────────────────────────────
 add_library(myserver_lib STATIC
     src/logger/log_names.cpp
+    src/server/server_hooks.cpp
 )
 
 target_include_directories(myserver_lib PUBLIC
