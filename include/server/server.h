@@ -58,6 +58,7 @@ template <typename QueueT,
           typename ExecutorT,
           typename DistributorT,
           typename... AdapterTs>
+
 class Server final {
 public:
     Server(ServerConfig config,
