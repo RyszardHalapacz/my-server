@@ -29,7 +29,16 @@ target_compile_options(myserver_lib PRIVATE
 )
 
 # ── Main application ──────────────────────────────────────────────────────────
-add_executable(MyApp src/main.cpp)
+add_executable(MyApp src/main.cpp
+        include/publisher/core/publisher_types.hpp
+        include/publisher/core/publish_token.hpp
+        include/publisher/runtime/sink_handles.hpp
+        include/publisher/runtime/token_registry.hpp
+        include/publisher/runtime/registration_handle.hpp
+        include/publisher/runtime/resource_store.hpp
+        include/publisher/api/publishable.hpp
+        include/publisher/runtime/sink_traits.hpp
+        include/publisher/runtime/publisher_runtime.hpp)
 target_link_libraries(MyApp PRIVATE myserver_lib)
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
