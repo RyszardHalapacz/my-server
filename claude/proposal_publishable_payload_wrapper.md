@@ -13,18 +13,45 @@ Rozwiązanie: usunąć dziedziczenie, dodać oddzielny wrapper `PublishablePaylo
 
 ## Context
 
-`PayloadBase` jest czystą daną — musi być:
-- default-constructible (`P payload{}`, `Base b{}`)
-- trivially copyable (`static_assert(std::is_trivially_copyable_v<RequestPayload>)`)
+### Dwa niezależne pipeline'y
 
-`Publishable<Derived>` łamie oba te kontrakty:
-- `explicit Publishable(RegistrationHandle)` — brak default constructora
+W kodzie istnieją dwie osobne ścieżki danych:
+
+**Stary pipeline (LogEngine):**
+```
+Handler::log<Tag>(...args)
+  → pack_header_args → Builder::build<Tag>(tuple) → P payload{}
+  → engine.enqueue(payload) → LogRecord::storage[256B]
+  → worker_loop → submit_fn → adapter(env.debug_print) → Publisher<Policy, Sink>
+```
+`Builder::build` wymaga `P payload{}` — default construction. Payload jest czystą daną, leci do fixed 256B storage.
+
+**Nowy pipeline (PublisherRuntime):**
+```
+Publishable::publish<Sink>(registry, store)
+  → PublisherRuntime<Sink>::publish(registry, store, token, obj)
+  → SinkTraits<Sink>::write(handle, obj.payload())
+```
+Osobna ścieżka — nie przechodzi przez `LogEngine`. Wymaga `RegistrationHandle` i `payload()`.
+
+### Dlaczego PayloadBase NIE powinien dziedziczyć po Publishable
+
+`PayloadBase` żyje w starym pipeline:
+- **Default constructible** — `Builder::build` robi `P payload{}`, testy robią `Base b{}`
+- **Trivially copyable** — test `static_assert(std::is_trivially_copyable_v<RequestPayload>)`
+- **Aggregate** — pola X-macro, padding, constexpr tag
+
+`Publishable<Derived>` łamie oba kontrakty:
+- `explicit Publishable(RegistrationHandle)` — suppresuje default constructor
 - `RegistrationHandle` ma user-defined destruktor → nie jest trivially copyable
 
-**Podział odpowiedzialności:**
+**Wniosek:** Łączenie ich w hierarchię dziedziczenia jest błędem architektonicznym. To dwa różne światy z różnymi kontraktami.
+
+### Poprawny podział
+
 ```
-PayloadBase<Tag, Derived>          → czysta dana, POD, trivially copyable
-PublishablePayload<Payload>        → wrapper do publishowania: dane + RegistrationHandle
+PayloadBase<Tag, Derived>              → czysta dana, POD, trivially copyable, stary pipeline
+PublishablePayload<Payload>            → wrapper: dane + RegistrationHandle, nowy pipeline
 ```
 
 ---
@@ -39,8 +66,10 @@ PublishablePayload<Payload>        → wrapper do publishowania: dane + Registra
 - Usunąć `using PublishableBase = ...`
 - Usunąć `explicit PayloadBase(RegistrationHandle handle)` constructor
 
-**Why:** `PayloadBase` jest agregatem danych. Nie powinien znać publishera, tokenu ani handle'a.
-Przywracamy trivial copyability i default construction — wszystkie testy wracają do stanu sprzed.
+**Why:** `PayloadBase` jest agregatem danych w starym pipeline.
+Przywracamy trivial copyability, default construction, i czystość typów — wszystkie testy i `Builder::build` wracają do stanu sprzed.
+
+**Impact:** Przywrócenie poprawnego zachowania. Zero wpływu na nowy pipeline publishera.
 
 **Proposed code:**
 ```cpp
@@ -151,22 +180,33 @@ std::ostream& operator<<(std::ostream& os, const PayloadBase<Tag, Derived>& p)
 ```
 
 #### Review & Status
-- [ ] Awaiting review
+- - [ ok] Awaiting review
 
 ---
 
-### Change 2: Nowy plik `include/publisher/api/publishable_payload.hpp` — wrapper
+### Change 2: Nowy plik `include/publisher/api/publishable_payload.hpp` — wrapper/koperta
 
-**What:** `PublishablePayload<Payload>` — łączy dane (`Payload`) z `RegistrationHandle`.
-Dziedziczy po `Publishable<PublishablePayload<Payload>>`. Udostępnia dane przez `data()`.
+**What:** `PublishablePayload<Payload>` — wrapper (koperta) łącząca czysty payload z `RegistrationHandle`. Dziedziczy po `Publishable<PublishablePayload<Payload>>`.
 
 **Why:**
-- Publishowanie wymaga `RegistrationHandle` — żyje w tym wrapperze, nie w `PayloadBase`.
-- `PayloadBase` pozostaje czystą daną.
-- Wrapper jest tworzony tylko gdy faktycznie potrzeba publishować — cold path (setup).
-- `payload()` — forma serializacji danych do `std::string_view` jest **otwartym pytaniem** (osobna decyzja, niezależna od tej zmiany).
+- Nowy pipeline publishera wymaga `RegistrationHandle` + `publish<Sink>()`. Ten kontrakt żyje w wrapperze, NIE w `PayloadBase`.
+- `PayloadBase` pozostaje czystą daną — nie zna publishera.
+- Wrapper tworzy się na cold path (setup/rejestracja). Na hot path wywołuje się `publish<Sink>()`.
+- `data()` — const i non-const accessor do wewnętrznego payloadu (np. ustawianie pól po wrappingu).
+- `payload()` serializacja — **TBD**, osobna decyzja. Gdy kontrakt payloadu będzie ustalony, wrapper go zaimplementuje. Na teraz zostawiony jako komentarz.
+- `static_assert` na `sizeof(Payload)` i `!is_polymorphic_v<Payload>` — wymuszenie kontraktów z CLAUDE.md po stronie compile-time.
 
-**Impact:** Nowy typ, zero wpływu na istniejący kod.
+**Lifecycle wrappera:**
+```
+1. TokenRegistry registry;
+2. RegistrationHandle handle(registry, OutputChannel::Channel0);
+3. RequestPayload data{};  // czysta dana — stary pipeline
+4. PublishablePayload<RequestPayload> envelope(std::move(handle), std::move(data));
+5. envelope.data().severity = Severity::Error;  // non-const data()
+6. envelope.publish<SinkKind::Terminal>(registry, store);  // nowy pipeline
+```
+
+**Impact:** Nowy typ w `publisher::api`. Zero wpływu na istniejący kod — Builder, Engine, testy nie zmieniają się.
 
 **Proposed code:**
 ```cpp
@@ -177,6 +217,7 @@ Dziedziczy po `Publishable<PublishablePayload<Payload>>`. Udostępnia dane przez
 #ifndef MYSERVER_PUBLISHABLE_PAYLOAD_HPP
 #define MYSERVER_PUBLISHABLE_PAYLOAD_HPP
 
+#include <type_traits>
 #include <utility>
 
 #include "publisher/api/publishable.hpp"
@@ -184,19 +225,14 @@ Dziedziczy po `Publishable<PublishablePayload<Payload>>`. Udostępnia dane przez
 
 namespace publisher::api
 {
-    // PublishablePayload<Payload> — wraps a pure data payload with a RegistrationHandle.
-    //
-    // Responsibilities:
-    //   - owns the RegistrationHandle (token lifecycle)
-    //   - provides access to the wrapped payload via data()
-    //   - payload() serialization contract is TBD
-    //
-    // Payload contract:
-    //   - must be moveable
-    //   - payload() — to be defined when serialization contract is established
     template<typename Payload>
     class PublishablePayload : public Publishable<PublishablePayload<Payload>>
     {
+        static_assert(sizeof(Payload) <= 256,
+                      "Payload exceeds 256B limit");
+        static_assert(!std::is_polymorphic_v<Payload>,
+                      "Virtual dispatch is forbidden");
+
     public:
         PublishablePayload(publisher::runtime::RegistrationHandle handle, Payload payload)
             : Publishable<PublishablePayload<Payload>>(std::move(handle))
@@ -208,8 +244,15 @@ namespace publisher::api
             return payload_;
         }
 
+        [[nodiscard]] Payload& data() noexcept
+        {
+            return payload_;
+        }
+
         // std::string_view payload() const noexcept;
-        // — TBD: serialization contract not yet established
+        // — TBD: serialization contract not yet established.
+        // When defined, called by PublisherRuntime<Sink>::publish()
+        // via SinkTraits<Sink>::write(handle, obj.payload()).
 
     private:
         Payload payload_;
@@ -220,7 +263,7 @@ namespace publisher::api
 ```
 
 #### Review & Status
-- [ ] Awaiting review
+- - [ ok] Awaiting review
 
 ---
 

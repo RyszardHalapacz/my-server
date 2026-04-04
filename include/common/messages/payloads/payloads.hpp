@@ -7,8 +7,6 @@
 #include <string_view>
 
 #include "common/messages/log_message.hpp"
-#include "publisher/api/publishable.hpp"
-#include "publisher/runtime/registration_handle.hpp"
 
 template<std::size_t N>
 struct Padding
@@ -40,15 +38,9 @@ inline std::ostream& operator<<(std::ostream& os, Severity s)
 #endif
 
 template<MsgTag Tag, typename Derived>
-struct PayloadBase : public publisher::api::Publishable<Derived>
+struct PayloadBase
 {
-    using PublishableBase = publisher::api::Publishable<Derived>;
     static constexpr MsgTag type_id = Tag;
-
-    explicit PayloadBase(publisher::runtime::RegistrationHandle handle)
-        : PublishableBase(std::move(handle))
-    {
-    }
 
     #define X(C,F) C F;
     #include "common/messages/payloads/log_payloads.def"
