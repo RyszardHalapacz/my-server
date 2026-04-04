@@ -24,6 +24,7 @@ add_executable(main_test
     publisher/sink/text_sink_test.cpp
     publisher/policy/policy_test.cpp
     publisher/publisher_test.cpp
+    publisher/runtime/publisher_runtime_test.cpp
     logger/integration/full_pipeline_test.cpp
     server/metrics_mixin_test.cpp
     server/server_components_test.cpp

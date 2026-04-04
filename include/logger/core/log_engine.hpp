@@ -6,10 +6,15 @@
 #include <type_traits>
 #include <utility>
 #include <new>
+
 #include "log_record.hpp"
 #include "lockfree_queue.hpp"
-#include "publisher.hpp"
 #include "stream_adapter.hpp"
+#include "publisher/core/publisher_types.hpp"
+#include "publisher/runtime/publisher_runtime.hpp"
+#include "publisher/runtime/registration_handle.hpp"
+#include "publisher/runtime/resource_store.hpp"
+#include "publisher/runtime/token_registry.hpp"
 
 namespace logger::core::detail
 {
@@ -21,8 +26,6 @@ namespace logger::core::detail
         uint64_t dropped()  const noexcept { return dropped_.load(std::memory_order_relaxed); }
         uint64_t enqueued() const noexcept { return enqueued_.load(std::memory_order_relaxed); }
         uint64_t written()  const noexcept { return written_.load(std::memory_order_relaxed); }
-
-        // --------- MAIN API: transfer of the envelope ----------
 
         template <typename Envelope>
         void enqueue(Envelope &&env)
@@ -46,7 +49,6 @@ namespace logger::core::detail
 
             void *mem = rec->storage_ptr();
 
-            // placement-new + std::move – ZERO copies of the envelope
             new (mem) Stored{std::move(env)};
 
             rec->destroy_fn = &destroy_impl<Stored>;
@@ -58,45 +60,47 @@ namespace logger::core::detail
 
         void shutdown() noexcept;
 
-    template<typename Stored>
-    static void submit_impl(void* storage)
-    {
-        auto* obj = static_cast<Stored*>(storage);
-        auto& env = obj->env;
+        template<typename Stored>
+        static void submit_impl(void* storage)
+        {
+            auto* obj = static_cast<Stored*>(storage);
+            auto& env = obj->env;
 
-        using Envelope  = std::decay_t<decltype(env)>;
-        using AdapterFn = std::string_view (*)(const Envelope&);
+            using Envelope  = std::decay_t<decltype(env)>;
 
-        AdapterFn adapter = [](const Envelope& envelope) -> std::string_view {
-            thread_local FixedStringBuf<1024> buf;
-            thread_local std::ostream os(&buf);
-            buf.reset();
-            os.clear();
+            auto adapter = [](const Envelope& envelope) -> std::string_view {
+                thread_local FixedStringBuf<1024> buf;
+                thread_local std::ostream os(&buf);
+                buf.reset();
+                os.clear();
 
-            envelope.debug_print(os);
-            return buf.view();
-        };
+                envelope.debug_print(os);
+                return buf.view();
+            };
 
-        // TODO: Make Policy/Sink configurable via LogEngine::config_
-        using Pub = Publisher<TerminalPolicy, TextSink>;
-        Pub::publish(env, adapter);
-    }
+            const std::string_view view = adapter(env);
+
+            publisher::runtime::PublisherRuntime<publisher::core::SinkKind::Terminal>::publish_view(
+                registry(),
+                store(),
+                instance().publishHandle_.token(),
+                view
+            );
+        }
 
     private:
-        LogEngine() = default;
+        LogEngine();
         ~LogEngine() { stop_worker(); }
 
         LogEngine(const LogEngine &) = delete;
         LogEngine &operator=(const LogEngine &) = delete;
 
-        // What actually resides in the storage – the envelope itself
         template <typename Envelope>
         struct StoredEnvelope
         {
             Envelope env;
         };
 
-        // type-erased destructor
         template <typename Stored>
         static void destroy_impl(void *storage) noexcept
         {
@@ -104,6 +108,8 @@ namespace logger::core::detail
             obj->~Stored();
         }
 
+        static publisher::runtime::TokenRegistry& registry() noexcept;
+        static publisher::runtime::OutputResourceStore& store() noexcept;
 
         void ensure_running();
         void init_pool_and_queue();
@@ -113,6 +119,8 @@ namespace logger::core::detail
         void stop_worker() noexcept;
 
     private:
+        publisher::runtime::RegistrationHandle publishHandle_{};
+
         std::unique_ptr<LogRecord[]> pool_storage_;
         std::size_t pool_size_{0};
 

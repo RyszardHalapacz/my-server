@@ -1,9 +1,37 @@
 #include <chrono>
 #include <iostream>
+
 #include "logger/core/log_engine.hpp"
 
 namespace logger::core::detail
 {
+
+publisher::runtime::TokenRegistry& LogEngine::registry() noexcept
+{
+    static publisher::runtime::TokenRegistry registry_;
+    return registry_;
+}
+
+publisher::runtime::OutputResourceStore& LogEngine::store() noexcept
+{
+    static publisher::runtime::OutputResourceStore store_ = [] {
+        publisher::runtime::OutputResourceStore s{};
+
+        s.terminals[publisher::core::toIndex(publisher::core::OutputChannel::Channel0)].out = &std::cout;
+        s.terminals[publisher::core::toIndex(publisher::core::OutputChannel::Channel1)].out = &std::cout;
+        s.terminals[publisher::core::toIndex(publisher::core::OutputChannel::Channel2)].out = &std::cout;
+        s.terminals[publisher::core::toIndex(publisher::core::OutputChannel::Channel3)].out = &std::cout;
+
+        return s;
+    }();
+
+    return store_;
+}
+
+LogEngine::LogEngine()
+    : publishHandle_(registry(), publisher::core::OutputChannel::Channel0)
+{
+}
 
 LogEngine& LogEngine::instance() noexcept
 {
