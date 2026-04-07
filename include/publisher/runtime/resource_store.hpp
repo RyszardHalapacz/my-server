@@ -10,13 +10,13 @@
 
 #include "publisher/core/publisher_types.hpp"
 #include "publisher/runtime/sink_handles.hpp"
+#include "publisher/runtime/token_registry.hpp"
 
 namespace publisher::runtime
 {
     struct OutputResourceStore
     {
-        static constexpr std::size_t kChannelCount =
-            static_cast<std::size_t>(publisher::core::OutputChannel::Count);
+        static constexpr std::size_t kChannelCount = TokenRegistry::kMaxChannels;
 
         std::array<TerminalHandle, kChannelCount> terminals{};
         std::array<FileHandle,     kChannelCount> files{};

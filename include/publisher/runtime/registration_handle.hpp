@@ -16,9 +16,16 @@ namespace publisher::runtime
     public:
         RegistrationHandle() = default;
 
-        RegistrationHandle(TokenRegistry& registry, publisher::core::OutputChannel channel)
+        // Exclusive — unikatowy kanał
+        explicit RegistrationHandle(TokenRegistry& registry)
             : registry_(&registry),
-              token_(registry.acquire(channel))
+              token_(registry.acquire())
+        {}
+
+        // Grupowy — dołącz do grupy
+        RegistrationHandle(TokenRegistry& registry, publisher::core::ChannelGroup group)
+            : registry_(&registry),
+              token_(registry.acquire(group))
         {}
 
         ~RegistrationHandle()
@@ -53,6 +60,26 @@ namespace publisher::runtime
             return *this;
         }
 
+        // ── Przerejestrowanie ────────────────────────────────────────
+
+        // Przejdź na Exclusive (release stary token, acquire nowy unikatowy)
+        void reassign()
+        {
+            assert(registry_ != nullptr && "Cannot reassign detached handle");
+            release();
+            token_ = registry_->acquire();
+        }
+
+        // Przejdź do innej grupy (release stary token, acquire w nowej grupie)
+        void reassign(publisher::core::ChannelGroup group)
+        {
+            assert(registry_ != nullptr && "Cannot reassign detached handle");
+            release();
+            token_ = registry_->acquire(group);
+        }
+
+        // ── Accessors ────────────────────────────────────────────────
+
         [[nodiscard]] publisher::core::PublishToken token() const noexcept
         {
             return token_;
@@ -78,7 +105,6 @@ namespace publisher::runtime
                 }
             }
 
-            registry_ = nullptr;
             token_ = publisher::core::kInvalidToken;
         }
 

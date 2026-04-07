@@ -9,13 +9,19 @@
 
 namespace publisher::core
 {
-    enum class OutputChannel : std::size_t
+    enum class ChannelGroup : std::size_t
     {
-        Channel0 = 0,
-        Channel1,
-        Channel2,
-        Channel3,
+        Group0 = 0,
+        Group1,
+        Group2,
+        Group3,
         Count
+    };
+
+    enum class ChannelMode : bool
+    {
+        Exclusive = false,
+        Shared    = true
     };
 
     enum class SinkKind : std::size_t
@@ -25,20 +31,20 @@ namespace publisher::core
         Socket
     };
 
-    [[nodiscard]] constexpr std::size_t toIndex(OutputChannel channel) noexcept
+    [[nodiscard]] constexpr std::size_t toIndex(ChannelGroup group) noexcept
     {
-        return static_cast<std::size_t>(channel);
+        return static_cast<std::size_t>(group);
     }
 
-    [[nodiscard]] constexpr const char* toString(OutputChannel channel) noexcept
+    [[nodiscard]] constexpr const char* toString(ChannelGroup group) noexcept
     {
-        switch (channel)
+        switch (group)
         {
-            case OutputChannel::Channel0: return "Channel0";
-            case OutputChannel::Channel1: return "Channel1";
-            case OutputChannel::Channel2: return "Channel2";
-            case OutputChannel::Channel3: return "Channel3";
-            default: return "UnknownChannel";
+            case ChannelGroup::Group0: return "Group0";
+            case ChannelGroup::Group1: return "Group1";
+            case ChannelGroup::Group2: return "Group2";
+            case ChannelGroup::Group3: return "Group3";
+            default: return "UnknownGroup";
         }
     }
 

@@ -26,8 +26,7 @@ namespace publisher::runtime
                                  publisher::core::PublishToken token,
                                  std::string_view data) noexcept
         {
-            const auto channel = registry.resolve(token);
-            const auto idx = publisher::core::toIndex(channel);
+            const auto idx = registry.resolve(token);
             auto& handle = store.terminals[idx];
 
             SinkTraits<publisher::core::SinkKind::Terminal>::write(handle, data);
@@ -51,8 +50,7 @@ namespace publisher::runtime
                                  publisher::core::PublishToken token,
                                  std::string_view data) noexcept
         {
-            const auto channel = registry.resolve(token);
-            const auto idx = publisher::core::toIndex(channel);
+            const auto idx = registry.resolve(token);
             auto& handle = store.files[idx];
 
             SinkTraits<publisher::core::SinkKind::File>::write(handle, data);
@@ -76,8 +74,7 @@ namespace publisher::runtime
                                  publisher::core::PublishToken token,
                                  std::string_view data) noexcept
         {
-            const auto channel = registry.resolve(token);
-            const auto idx = publisher::core::toIndex(channel);
+            const auto idx = registry.resolve(token);
             auto& handle = store.sockets[idx];
 
             SinkTraits<publisher::core::SinkKind::Socket>::write(handle, data);
