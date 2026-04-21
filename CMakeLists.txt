@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(MyServer CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -9,37 +9,34 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
 
-# ── Shared production library ─────────────────────────────────────────────────
-add_library(myserver_lib STATIC
-    src/logger/log_names.cpp
-    src/logger/core/log_engine.cpp
-    src/publisher/sink_publisher.cpp
-    src/server/server_hooks.cpp
-)
+option(MYSERVER_BUILD_TESTS "Build all tests" ON)
 
-target_include_directories(myserver_lib PUBLIC
-    ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/include/server
-    ${CMAKE_SOURCE_DIR}/include/publisher
-    ${CMAKE_SOURCE_DIR}/include/logger/registry
-)
+# ── central GTest (reused by all modules & cross-module tests) ───────────────
+if(MYSERVER_BUILD_TESTS)
+    include(FetchContent)
+    FetchContent_Declare(
+        googletest
+        URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+    )
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest)
+    enable_testing()
+endif()
 
-target_compile_options(myserver_lib PRIVATE
-    -Wall -Wextra -Wpedantic
-)
+# ── per-module test toggles (follow top-level) ───────────────────────────────
+set(COMMON_BUILD_TESTS    ${MYSERVER_BUILD_TESTS} CACHE BOOL "" FORCE)
+set(PUBLISHER_BUILD_TESTS ${MYSERVER_BUILD_TESTS} CACHE BOOL "" FORCE)
+set(LOGGER_BUILD_TESTS    ${MYSERVER_BUILD_TESTS} CACHE BOOL "" FORCE)
 
-# ── Main application ──────────────────────────────────────────────────────────
-add_executable(MyApp src/main.cpp
-        include/publisher/core/publisher_types.hpp
-        include/publisher/core/publish_token.hpp
-        include/publisher/runtime/sink_handles.hpp
-        include/publisher/runtime/token_registry.hpp
-        include/publisher/runtime/registration_handle.hpp
-        include/publisher/runtime/resource_store.hpp
-        include/publisher/runtime/sink_traits.hpp
-        include/publisher/runtime/publisher_runtime.hpp)
-target_link_libraries(MyApp PRIVATE myserver_lib)
+# ── modules ──────────────────────────────────────────────────────────────────
+add_subdirectory(modules/common)
+add_subdirectory(modules/publisher)
+add_subdirectory(modules/logger)
 
-# ── Tests ─────────────────────────────────────────────────────────────────────
-enable_testing()
-add_subdirectory(test)
+# ── application ──────────────────────────────────────────────────────────────
+add_subdirectory(app)
+
+# ── cross-module tests ───────────────────────────────────────────────────────
+if(MYSERVER_BUILD_TESTS)
+    add_subdirectory(test)
+endif()

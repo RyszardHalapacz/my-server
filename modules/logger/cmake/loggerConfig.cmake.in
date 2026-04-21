@@ -1,0 +1,8 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(common CONFIG)
+find_dependency(publisher CONFIG)
+
+include("${CMAKE_CURRENT_LIST_DIR}/loggerTargets.cmake")
+check_required_components(logger)
